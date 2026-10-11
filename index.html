@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POWERCORE™ HMI — Industrial Genset Management SaaS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Librería oficial QRCode para generar los QR reales -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #07090e;
+            --bg-sidebar: #0b0f17;
+            --bg-card: #111827;
+            --bg-input: #0d121d;
+            --border: #1f293d;
+            --primary: #84cc16;
+            --primary-dark: #4d7c0f;
+            --accent-orange: #f97316;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #22c55e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* SIDEBAR SCADA HMI */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 14px;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .brand-logo span { color: var(--primary); font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 10px rgba(132, 204, 22, 0.3); }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 6px; margin-top: 20px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+            color: var(--text-muted); font-weight: 600; font-size: 0.85rem;
+            border-radius: 8px; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent;
+        }
+        .nav-item:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.03); }
+        .nav-item.active {
+            color: #fff; background: rgba(132, 204, 22, 0.12);
+            border-color: var(--primary); box-shadow: 0 0 15px rgba(132, 204, 22, 0.15);
+        }
+
+        .system-status { background: #0d121d; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.75rem; }
+        .status-indicator { display: flex; align-items: center; gap: 8px; color: var(--success); font-weight: 700; margin-top: 4px; }
+        .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+
+        /* CONTENIDO PRINCIPAL */
+        .main-wrapper { margin-left: 260px; flex: 1; padding: 28px 36px; max-width: calc(100% - 260px); }
+
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+        }
+        .page-title h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
+        .page-title p { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
+
+        .view { display: none; }
+        .view.active { display: block; animation: fadeIn 0.25s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* WIDGETS SCADA & KPIS */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .kpi-box {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+            position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .kpi-box::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); }
+        .kpi-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .kpi-val { font-size: 2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; margin-top: 6px; color: #fff; }
+
+        .scada-panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-bottom: 28px; }
+        .scada-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        .scada-card-title { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .gauge-container { display: flex; justify-around; align-items: center; gap: 15px; text-align: center; margin: 10px 0; }
+        .gauge-circle {
+            width: 85px; height: 85px; border-radius: 50%; border: 6px solid var(--border); border-top-color: var(--primary);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace;
+            margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .gauge-val { font-size: 1.1rem; font-weight: 800; }
+        .gauge-unit { font-size: 0.65rem; color: var(--text-muted); }
+
+        /* GRILLA DE ASSET 360 */
+        .assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+        .asset-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+            display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s;
+        }
+        .asset-card:hover { border-color: var(--primary); box-shadow: 0 8px 25px rgba(0,0,0,0.6); }
+        .asset-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .asset-title { font-size: 1rem; font-weight: 700; color: #fff; }
+        .asset-client { font-size: 0.8rem; color: var(--text-muted); }
+        .badge-iot { font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 700; background: rgba(132, 204, 22, 0.15); color: var(--primary); border: 1px solid rgba(132, 204, 22, 0.3); }
+
+        /* WIZARD DE CAMPO (FIELDTECH) */
+        .step-tabs { display: flex; gap: 6px; margin-bottom: 20px; overflow-x: auto; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .step-tab {
+            background: var(--bg-card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px;
+            font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; white-space: nowrap; text-transform: uppercase;
+        }
+        .step-tab.active { background: var(--primary-dark); color: #fff; border-color: var(--primary); }
+
+        fieldset { border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; background: rgba(17, 24, 39, 0.6); }
+        legend { color: var(--primary); font-weight: 700; font-size: 0.85rem; padding: 2px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
+        input, select, textarea {
+            width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border);
+            color: var(--text-main); border-radius: 6px; font-size: 0.875rem; font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(132, 204, 22, 0.2); }
+
+        button.btn-act {
+            background: var(--primary); color: #07090e; border: none; padding: 12px 20px; font-weight: 800;
+            border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.03em;
+        }
+        button.btn-act:hover { background: #99f6e4; transform: translateY(-1px); }
+        button.btn-danger { background: var(--danger); color: #fff; border: none; padding: 6px 10px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
+        button.btn-danger:hover { background: #dc2626; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+        th, td { padding: 10px; text-align: center; font-size: 0.85rem; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: var(--bg-sidebar); color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 8px; background: var(--bg-input); padding: 10px; border-radius: 6px; border: 1px solid var(--border); }
+        .checkbox-group input { width: 16px; height: 16px; accent-color: var(--primary); }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; align-items: center; padding: 12px; }
+            .brand-logo { border-bottom: none; padding-bottom: 0; }
+            .nav-menu { flex-direction: row; overflow-x: auto; margin-top: 0; gap: 4px; }
+            .nav-item { padding: 8px 10px; font-size: 0.75rem; }
+            .system-status { display: none; }
+            .main-wrapper { margin-left: 0; max-width: 100%; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR SCADA HMI -->
+    <aside class="sidebar">
+        <div class="brand-logo">
+            ⚡ <span>POWERCORE</span>
+        </div>
+        <nav class="nav-menu">
+            <div class="nav-item active" onclick="switchView('view-dashboard', this)">📊 <span>Dashboard</span></div>
+            <div class="nav-item" onclick="switchView('view-assets', this)">💻 <span>Activos 360</span></div>
+            <div class="nav-item" onclick="switchView('view-pin', this)">📱 <span>Escaneo QR</span></div>
+            <div class="nav-item" onclick="switchView('view-protocol', this)">📋 <span>Protocolo Campo</span></div>
+            <div class="nav-item" onclick="switchView('view-history', this)">📜 <span>Bitácora</span></div>
+        </nav>
+        <div class="system-status">
+            <div>ESTADO HMI</div>
+            <div class="status-indicator">
+                <div class="dot"></div> En Línea
+            </div>
+        </div>
+    </aside>
+
+    <!-- ÁREA DE TRABAJO PRINCIPAL -->
+    <main class="main-wrapper">
+        <header class="top-bar">
+            <div class="page-title">
+                <h1 id="topTitle">Centro de Supervisión HMI</h1>
+                <p id="topSub">Control industrial en tiempo real y protocolos de campo</p>
+            </div>
+            <button class="btn-act" onclick="switchView('view-assets', document.querySelectorAll('.nav-item')[1])">+ Nuevo Generador</button>
+        </header>
+
+        <!-- 1. DASHBOARD POWERCORE -->
+        <section id="view-dashboard" class="view active">
+            <div class="kpi-grid">
+                <div class="kpi-box">
+                    <div class="kpi-label">Generadores Registrados</div>
+                    <div class="kpi-val" id="kpiTotalAssets">0</div>
+                </div>
+                <div class="kpi-box" style="border-left-color: #3b82f6;">
+                    <div class="kpi-label">Servicios Completados</div>
+                    <div class="kpi-val" id="kpiTotalServices">0</div>
+                </div>
+                <div class="kpi-box" style="border-left-color: var(--warning);">
+                    <div class="kpi-label">Alertas de Horómetro</div>
+                    <div class="kpi-val" id="kpiAlerts">0</div>
+                </div>
+            </div>
+
+            <div class="scada-panel-grid">
+                <div class="scada-card">
+                    <div class="scada-card-title">Telemetría Promedio Flota <span>Status: RUNNING</span></div>
+                    <div class="gauge-container">
+                        <div>
+                            <div class="gauge-circle"><span class="gauge-val">1500</span><span class="gauge-unit">RPM</span></div>
+                            <div style="font-size:0.75rem; margin-top:6px; color:var(--text-muted);">Velocidad Motor</div>
+                        </div>
+                        <div>
+                            <div class="gauge-circle" style="border-top-color: var(--accent-orange);"><span class="gauge-val">5.8</span><span class="gauge-unit">BAR</span></div>
+                            <div style="font-size:0.75rem; margin-top:6px; color:var(--text-muted);">Presión Aceite</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="scada-card">
+                    <div class="scada-card-title">Estado de Sincronización <span>Modo Local / Firebase Ready</span></div>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+                        <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); padding:8px 12px; border-radius:6px; font-size:0.8rem; color:#4ade80;">
+                            ✔ Almacenamiento local activo (Listo para conectar Firebase).
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. ASSET 360 & ALMACÉN POR EQUIPO -->
+        <section id="view-assets" class="view">
+            <fieldset>
+                <legend>Alta de Nuevo Generador y Pañol de Repuestos Específico</legend>
+                <form id="assetForm" onsubmit="saveAsset(event)">
+                    <div class="grid-3">
+                        <div class="form-group"><label>Cliente</label><input type="text" id="assetClient" required placeholder="Ej. SUPARA CATARATAS"></div>
+                        <div class="form-group"><label>Sitio / Ubicación</label><input type="text" id="assetSite" required placeholder="Ej. Planta Principal"></div>
+                        <div class="form-group"><label>Código Interno / ID</label><input type="text" id="assetCode" placeholder="Ej. GG-EE-01"></div>
+                    </div>
+                    <div class="grid-3">
+                        <div class="form-group"><label>Equipo (Marca / Modelo / kVA)</label><input type="text" id="assetEq" placeholder="CETEC / CD-440 / 440 KVA"></div>
+                        <div class="form-group"><label>Motor (Marca / Modelo / Serie)</label><input type="text" id="assetMot" placeholder="DOOSAN / P-158-LE"></div>
+                        <div class="form-group"><label>Generador (Marca / Modelo / Serie)</label><input type="text" id="assetGen" placeholder="CRAMACO / G2R315SA"></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Telemetría IoT</label>
+                            <select id="assetIoT">
+                                <option value="Sin IoT (Oportunidad Kit)">Sin Módulo IoT (Disponible Venta Kit)</option>
+                                <option value="IoT Activo (Monitoreo Online)">IoT Activo (Monitoreo Online)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre Comercial QR</label>
+                            <input type="text" id="assetNameQR" placeholder="Ej. Generador Principal Planta Alta" required>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 12px;">
+                        <label style="color:var(--primary); margin-bottom:8px;">Repuestos Asignados a este Equipo (Pañol Específico)</label>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Filtro Aceite Ref.</label><input type="text" id="partOil" placeholder="Ej. FLEETGUARD LF3716"></div>
+                            <div class="form-group"><label>Filtro Combustible Ref.</label><input type="text" id="partFuel" placeholder="Ej. FLEETGUARD FS-1212"></div>
+                            <div class="form-group"><label>Filtro Aire Ref.</label><input type="text" id="partAir" placeholder="Ej. FAMEL FR-1488"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-act" style="margin-top: 12px;">Registrar Activo y Generar QR</button>
+                </form>
+            </fieldset>
+
+            <h2 style="margin-top: 30px; margin-bottom: 14px;">Expediente Digital de Flota (Asset 360)</h2>
+            <div class="assets-grid" id="assetsList"></div>
+        </section>
+
+        <!-- 3. ESCANEO QR & VALIDACIÓN DE PIN -->
+        <section id="view-pin" class="view">
+            <div style="max-width: 500px; margin: 0 auto;">
+                <fieldset style="text-align: center;">
+                    <legend>Identificación de Activo Escaneado</legend>
+                    <h3 id="qrDisplayName" style="font-size: 1.2rem; color: #fff; margin-bottom: 6px;">Ningún activo seleccionado</h3>
+                    <p id="qrDisplayModel" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Escanee o seleccione un equipo desde la lista de activos.</p>
+                    
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
+                        <label style="margin-bottom: 8px;">PIN Corporativo de Técnico</label>
+                        <input type="password" id="pinInput" placeholder="••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; width: 180px;">
+                    </div>
+                    <button type="button" class="btn-act" style="width: 100%;" onclick="validatePin()">Validar PIN e Iniciar Protocolo</button>
+                </fieldset>
+            </div>
+        </section>
+
+        <!-- 4. PROTOCOLO DE CAMPO POR PASOS (FIELDTECH) -->
+        <section id="view-protocol" class="view">
+            <div class="step-tabs">
+                <div class="step-tab active" onclick="switchStep('step-1', this)">1. Encabezado & TTA</div>
+                <div class="step-tab" onclick="switchStep('step-2', this)">2. Tensión Vacío</div>
+                <div class="step-tab" onclick="switchStep('step-3', this)">3. Insumos & Filtros</div>
+                <div class="step-tab" onclick="switchStep('step-4', this)">4. Motor en Marcha</div>
+                <div class="step-tab" onclick="switchStep('step-5', this)">5. Fugas & Inspección</div>
+                <div class="step-tab" onclick="switchStep('step-6', this)">6. Fotos & Cierre</div>
+            </div>
+
+            <form id="fullServiceForm" onsubmit="submitService(event)">
+                <!-- PASO 1 -->
+                <div id="step-1" class="step-content">
+                    <fieldset>
+                        <legend>1. Encabezado del Servicio</legend>
+                        <div class="grid-4">
+                            <div class="form-group"><label>Fecha</label><input type="date" id="servFecha" required></div>
+                            <div class="form-group"><label>Ensayos / ID</label><input type="text" id="servEnsayos" value="GG-EE"></div>
+                            <div class="form-group"><label>Horas Último Service</label><input type="text" id="servUltimoHs" placeholder="Ej. 1111,3 Hs"></div>
+                            <div class="form-group"><label>Fecha Último Service</label><input type="date" id="servUltimaFecha"></div>
+                        </div>
+                        <div class="grid-4" style="margin-top: 10px;">
+                            <div class="checkbox-group"><input type="checkbox" id="typePrev" checked><label for="typePrev">Preventivo</label></div>
+                            <div class="checkbox-group"><input type="checkbox" id="typeMensual" checked><label for="typeMensual">Mensual</label></div>
+                            <div class="checkbox-group"><input type="checkbox" id="typeAnual"><label for="typeAnual">Anual</label></div>
+                            <div class="checkbox-group"><input type="checkbox" id="typeCorrectivo"><label for="typeCorrectivo">Correctivo</label></div>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>2. Interruptor General y Control TTA (Transferencia)</legend>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Interruptor Marca / Modelo</label><input type="text" placeholder="SIEMENS OEZ"></div>
+                            <div class="form-group"><label>Potencia (A)</label><input type="text" placeholder="630 A"></div>
+                            <div class="form-group"><label>Estado Visual / Torque Potencia</label><input type="text" placeholder="OK / Verificado"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>TTA Marca / Modelo</label><input type="text" placeholder="ABB OTM800E3CM230C"></div>
+                            <div class="form-group"><label>Potencia / Polos</label><input type="text" placeholder="800 / 3"></div>
+                            <div class="form-group"><label>Controlador</label><input type="text"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Torque R-S-T-N</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Torque R1-S1-T1-N1</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Torque U-V-W</label><input type="text" placeholder="OK"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Prueba Falla Red</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Prueba Retardo Red</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Torque Comando</label><input type="text" placeholder="OK"></div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- PASO 2 -->
+                <div id="step-2" class="step-content" style="display:none;">
+                    <fieldset>
+                        <legend>3. Control de Tensión y Frecuencia (En Vacío)</legend>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Tensión R-S (V)</label><input type="text" placeholder="408"></div>
+                            <div class="form-group"><label>Tensión S-T (V)</label><input type="text" placeholder="405"></div>
+                            <div class="form-group"><label>Tensión R-T (V)</label><input type="text" placeholder="406"></div>
+                        </div>
+                        <div class="grid-4">
+                            <div class="form-group"><label>Tensión N-R (V)</label><input type="text" placeholder="235"></div>
+                            <div class="form-group"><label>Tensión N-S (V)</label><input type="text" placeholder="235"></div>
+                            <div class="form-group"><label>Tensión N-T (V)</label><input type="text" placeholder="234"></div>
+                            <div class="form-group"><label>Frecuencia (Hz)</label><input type="text" placeholder="50,0"></div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- PASO 3 -->
+                <div id="step-3" class="step-content" style="display:none;">
+                    <fieldset>
+                        <legend>4. Insumos, Aceite, Filtros y Baterías</legend>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Presión de Aceite (BAR / PSI)</label><input type="text" placeholder="5.9 BAR"></div>
+                            <div class="form-group"><label>Marca y Tipo Aceite</label><input type="text" placeholder="SAE25-W50"></div>
+                            <div class="form-group"><label>Litros / Nivel Aceite</label><input type="text" placeholder="32 Litros / OK"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Filtro Aceite Primario</label><input type="text" placeholder="FLEETGUARD LF3716"></div>
+                            <div class="form-group"><label>Filtro Aceite Secundario</label><input type="text"></div>
+                            <div class="form-group"><label>Consumo Estimado Aceite</label><input type="text"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Filtros Aire (Prim. / Sec.)</label><input type="text" placeholder="FAMEL FR-1488"></div>
+                            <div class="form-group"><label>Filtro Combustible Primario</label><input type="text" placeholder="FLEETGUARD FS-1212"></div>
+                            <div class="form-group"><label>Nivel Tanque Combustible (%)</label><input type="text" placeholder="20%"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Tensión Batería OFF / ON</label><input type="text" placeholder="24,3V / 28,4V"></div>
+                            <div class="form-group"><label>Cargador Baterías OFF / ON</label><input type="text" placeholder="26,3V / 26,3V"></div>
+                            <div class="form-group"><label>Estado Bornes / Cantidad</label><input type="text" placeholder="CADEN / 2 Baterías"></div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- PASO 4 -->
+                <div id="step-4" class="step-content" style="display:none;">
+                    <fieldset>
+                        <legend>5. Controles con Motor en Marcha</legend>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tiempos</th>
+                                    <th>VCC Bat.</th>
+                                    <th>Temperatura (°C)</th>
+                                    <th>VCA Gen. (L1-L2-L3)</th>
+                                    <th>Carga en A Gen.</th>
+                                    <th>Hz Gen.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Minuto 0</td>
+                                    <td><input type="text" placeholder="28.4"></td>
+                                    <td><input type="text" placeholder="42"></td>
+                                    <td><input type="text" placeholder="236 237 236"></td>
+                                    <td><input type="text" placeholder="134 86 104"></td>
+                                    <td><input type="text" placeholder="50.0"></td>
+                                </tr>
+                                <tr>
+                                    <td>Minuto 5</td>
+                                    <td><input type="text" placeholder="28.4"></td>
+                                    <td><input type="text" placeholder="54"></td>
+                                    <td><input type="text" placeholder="236 235 235"></td>
+                                    <td><input type="text" placeholder="119 130 125"></td>
+                                    <td><input type="text" placeholder="50.0"></td>
+                                </tr>
+                                <tr>
+                                    <td>Minuto 10</td>
+                                    <td><input type="text" placeholder="28.4"></td>
+                                    <td><input type="text" placeholder="60"></td>
+                                    <td><input type="text" placeholder="236 235 235"></td>
+                                    <td><input type="text" placeholder="120 118 123"></td>
+                                    <td><input type="text" placeholder="50.0"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="form-group"><label>¿Ruidos Extraños?</label><input type="text" placeholder="Sin ruidos extraños"></div>
+                    </fieldset>
+                </div>
+
+                <!-- PASO 5 -->
+                <div id="step-5" class="step-content" style="display:none;">
+                    <fieldset>
+                        <legend>6. Control de Fugas, Limpieza e Inspección Visual</legend>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Fugas Gases</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Fugas Lubricante</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Fugas Combustible</label><input type="text" placeholder="OK"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Mangueras Refrigerante</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Mangueras Combustible</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Estado Correas</label><input type="text" placeholder="OK"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Limpieza Exterior Equipo</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Limpieza Sala de Máquinas</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Turbo Filtro</label><input type="text" placeholder="OK"></div>
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Horas de Marcha Actual</label><input type="text" id="inputHorasActual" placeholder="Ej. 1122,2" required></div>
+                            <div class="form-group"><label>Estimado Próximo Service</label><input type="text" placeholder="Ej. 1372,2 Hs"></div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- PASO 6 -->
+                <div id="step-6" class="step-content" style="display:none;">
+                    <fieldset>
+                        <legend>7. Observaciones y Fotografías de Campo</legend>
+                        <div class="form-group">
+                            <label>Observaciones Generales</label>
+                            <textarea rows="3" id="obsText" placeholder="Detalles o novedades del servicio..."></textarea>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Foto 1: Generador (Cámara)</label><input type="file" accept="image/*" capture="environment" id="f1" required></div>
+                            <div class="form-group"><label>Foto 2: Sala Máquinas (Cámara)</label><input type="file" accept="image/*" capture="environment" id="f2" required></div>
+                            <div class="form-group"><label>Foto 3: Interconexión (Cámara)</label><input type="file" accept="image/*" capture="environment" id="f3" required></div>
+                        </div>
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label>Técnico Responsable</label>
+                            <input type="text" id="techName" placeholder="Nombre, Apellido y Matrícula del Técnico" required>
+                        </div>
+                    </fieldset>
+                    <button type="submit" class="btn-act" style="width: 100%; padding: 16px;">Finalizar Mantenimiento y Guardar en Bitácora</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 5. BITÁCORA E HISTORIAL -->
+        <section id="view-history" class="view">
+            <fieldset>
+                <legend>Historial Inalterable de Servicios Realizados</legend>
+                <div id="historyList">
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Sin servicios registrados.</p>
+                </div>
+            </fieldset>
+        </section>
+    </main>
+
+    <script>
+        const GLOBAL_PIN = "1234";
+        let currentAssetId = null;
+        let serviceStartTime = null;
+
+        function switchView(viewId, el) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            if(el) {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                el.classList.add('active');
+            }
+
+            if(viewId === 'view-dashboard') updateKPIs();
+            if(viewId === 'view-history') renderHistory();
+        }
+
+        function switchStep(stepId, tabEl) {
+            document.querySelectorAll('.step-content').forEach(s => s.style.display = 'none');
+            document.getElementById(stepId).style.display = 'block';
+            document.querySelectorAll('.step-tab').forEach(t => t.classList.remove('active'));
+            tabEl.classList.add('active');
+        }
+
+        function getAssets() { return JSON.parse(localStorage.getItem('genset_assets') || '[]'); }
+        function getServices() { return JSON.parse(localStorage.getItem('genset_services') || '[]'); }
+
+        function saveAsset(e) {
+            e.preventDefault();
+            const assets = getAssets();
+            const newAsset = {
+                id: 'GEN-' + Date.now().toString().slice(-5),
+                client: document.getElementById('assetClient').value,
+                site: document.getElementById('assetSite').value,
+                code: document.getElementById('assetCode').value,
+                generator: document.getElementById('assetEq').value,
+                motor: document.getElementById('assetMot').value,
+                alt: document.getElementById('assetGen').value,
+                iot: document.getElementById('assetIoT').value,
+                nameQR: document.getElementById('assetNameQR').value,
+                parts: {
+                    oil: document.getElementById('partOil').value || 'Sin asignar',
+                    fuel: document.getElementById('partFuel').value || 'Sin asignar',
+                    air: document.getElementById('partAir').value || 'Sin asignar'
+                }
+            };
+            assets.push(newAsset);
+            localStorage.setItem('genset_assets', JSON.stringify(assets));
+            document.getElementById('assetForm').reset();
+            loadAssetsList();
+            updateKPIs();
+            alert('Generador y pañol específico registrados con éxito.');
+        }
+
+        function deleteAsset(id) {
+            if(confirm('¿Está seguro de eliminar este generador y su QR asociado?')) {
+                let assets = getAssets();
+                assets = assets.filter(a => a.id !== id);
+                localStorage.setItem('genset_assets', JSON.stringify(assets));
+                loadAssetsList();
+                updateKPIs();
+            }
+        }
+
+        function loadAssetsList() {
+            const assets = getAssets();
+            const container = document.getElementById('assetsList');
+            container.innerHTML = '';
+            if(assets.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay generadores cargados.</p>';
+                return;
+            }
+            assets.forEach(a => {
+                const div = document.createElement('div');
+                div.className = 'asset-card';
+                div.innerHTML = `
+                    <div>
+                        <div class="asset-header">
+                            <div>
+                                <div class="asset-title">${a.nameQR}</div>
+                                <div class="asset-client">${a.client} — ${a.site}</div>
+                            </div>
+                            <span class="badge-iot">${a.iot}</span>
+                        </div>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
+                            ID: <strong>${a.id}</strong> | Motor: ${a.motor}
+                        </p>
+                        <div style="background:rgba(0,0,0,0.2); padding:8px; border-radius:6px; font-size:0.75rem; margin-bottom:12px; border:1px solid var(--border);">
+                            <strong style="color:var(--primary);">Pañol de Repuestos Específico:</strong><br>
+                            🛢 Aceite: ${a.parts.oil}<br>
+                            ⛽ Combustible: ${a.parts.fuel}<br>
+                            💨 Aire: ${a.parts.air}
+                        </div>
+                        <div style="margin-bottom: 10px; text-align: center;">
+                            <div id="qrcode-${a.id}" style="display: inline-block; background: #fff; padding: 6px; border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-act" style="flex:1; padding: 8px; font-size:0.75rem;" onclick="selectAsset('${a.id}')">Simular QR</button>
+                        <button class="btn-danger" onclick="deleteAsset('${a.id}')">Eliminar</button>
+                    </div>
+                `;
+                container.appendChild(div);
+
+                setTimeout(() => {
+                    const qrContainer = document.getElementById(`qrcode-${a.id}`);
+                    if(qrContainer && qrContainer.childElementCount === 0) {
+                        new QRCode(qrContainer, {
+                            text: window.location.href.split('#')[0] + "?asset=" + a.id,
+                            width: 75,
+                            height: 75
+                        });
+                    }
+                }, 100);
+            });
+        }
+
+        function selectAsset(id) {
+            currentAssetId = id;
+            const assets = getAssets();
+            const a = assets.find(x => x.id === id);
+            document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
+            document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts.oil}`;
+            switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
+        }
+
+        function validatePin() {
+            if(document.getElementById('pinInput').value === GLOBAL_PIN) {
+                serviceStartTime = new Date();
+                alert('PIN Correcto. Iniciando protocolo de mantenimiento.');
+                switchView('view-protocol', document.querySelectorAll('.nav-item')[3]);
+            } else {
+                alert('PIN Incorrecto. Denegado.');
+            }
+        }
+
+        function submitService(e) {
+            e.preventDefault();
+            const f1 = document.getElementById('f1').files[0];
+            const f2 = document.getElementById('f2').files[0];
+            const f3 = document.getElementById('f3').files[0];
+
+            if(!f1 || !f2 || !f3) {
+                alert('Error: Las 3 fotos capturadas con cámara son obligatorias.');
+                return;
+            }
+
+            const duration = serviceStartTime ? Math.round((new Date() - serviceStartTime) / 60000) : 15;
+            const assets = getAssets();
+            const a = assets.find(x => x.id === currentAssetId);
+
+            const services = getServices();
+            services.push({
+                id: 'SRV-' + Date.now().toString().slice(-5),
+                assetName: a ? a.nameQR : 'Generador General',
+                client: a ? a.client : 'Cliente General',
+                fecha: document.getElementById('servFecha').value,
+                tech: document.getElementById('techName').value,
+                horas: document.getElementById('inputHorasActual').value,
+                duration: duration
+            });
+
+            localStorage.setItem('genset_services', JSON.stringify(services));
+            alert(`¡Servicio guardado con éxito en la bitácora!\nTiempo registrado: ${duration} minutos.`);
+            document.getElementById('fullServiceForm').reset();
+            updateKPIs();
+            switchView('view-history', document.querySelectorAll('.nav-item')[4]);
+        }
+
+        function updateKPIs() {
+            const assets = getAssets();
+            const services = getServices();
+            document.getElementById('kpiTotalAssets').innerText = assets.length;
+            document.getElementById('kpiTotalServices').innerText = services.length;
+            document.getElementById('kpiAlerts').innerText = assets.length > 0 ? "1" : "0";
+        }
+
+        function renderHistory() {
+            const services = getServices();
+            const container = document.getElementById('historyList');
+            container.innerHTML = '';
+            if(services.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay servicios registrados todavía.</p>';
+                return;
+            }
+            services.forEach(s => {
+                const div = document.createElement('div');
+                div.style.cssText = "background: var(--bg-card); padding: 14px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem;";
+                div.innerHTML = `<strong>Servicio ${s.id}</strong> — Equipo: ${s.assetName} (${s.client})<br>
+                <span style="color:var(--text-muted);">Fecha: ${s.fecha} | Técnico: ${s.tech} | Horas: ${s.horas} Hs | Duración: ${s.duration} min</span><br>
+                <span style="color:var(--success); font-weight:700; display:inline-block; margin-top:4px;">✔ Bitácora Actualizada y Archivo PDF Generado</span>`;
+                container.appendChild(div);
+            });
+        }
+
+        window.onload = function() {
+            document.getElementById('servFecha').valueAsDate = new Date();
+            loadAssetsList();
+            updateKPIs();
+        };
+    </script>
+</body>
+</html>
