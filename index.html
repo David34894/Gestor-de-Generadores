@@ -2,11 +2,17 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>POWERCORE™ HMI — Industrial Genset Management SaaS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    <!-- Librería oficial QRCode para generar los QR reales -->
+    
+    <!-- Generador QR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- SDK de Firebase (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
         :root {
             --bg-dark: #07090e;
@@ -35,7 +41,7 @@
             overflow-x: hidden;
         }
 
-        /* SIDEBAR SCADA HMI */
+        /* SIDEBAR (PC & TABLET) */
         .sidebar {
             width: 260px;
             background-color: var(--bg-sidebar);
@@ -47,12 +53,13 @@
             position: fixed;
             height: 100vh;
             z-index: 100;
+            transition: all 0.3s ease;
         }
 
         .brand-logo {
             display: flex;
             align-items: center;
-            gap: 12px;
+            justify-content: space-between;
             font-size: 1.15rem;
             font-weight: 800;
             letter-spacing: -0.02em;
@@ -60,6 +67,8 @@
             border-bottom: 1px solid var(--border);
         }
         .brand-logo span { color: var(--primary); font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 10px rgba(132, 204, 22, 0.3); }
+
+        .mobile-toggle { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
 
         .nav-menu { display: flex; flex-direction: column; gap: 6px; margin-top: 20px; }
         .nav-item {
@@ -78,12 +87,12 @@
         .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
 
-        /* CONTENIDO PRINCIPAL */
-        .main-wrapper { margin-left: 260px; flex: 1; padding: 28px 36px; max-width: calc(100% - 260px); }
+        /* MAIN WRAPPER */
+        .main-wrapper { margin-left: 260px; flex: 1; padding: 28px 36px; max-width: calc(100% - 260px); width: 100%; }
 
         .top-bar {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+            margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px;
         }
         .page-title h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
         .page-title p { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
@@ -92,8 +101,8 @@
         .view.active { display: block; animation: fadeIn 0.25s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* WIDGETS SCADA & KPIS */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        /* KPIS & SCADA PANELS */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
         .kpi-box {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
             position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
@@ -106,7 +115,7 @@
         .scada-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
         .scada-card-title { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
         
-        .gauge-container { display: flex; justify-around; align-items: center; gap: 15px; text-align: center; margin: 10px 0; }
+        .gauge-container { display: flex; justify-content: space-around; align-items: center; gap: 15px; text-align: center; margin: 10px 0; }
         .gauge-circle {
             width: 85px; height: 85px; border-radius: 50%; border: 6px solid var(--border); border-top-color: var(--primary);
             display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace;
@@ -115,8 +124,8 @@
         .gauge-val { font-size: 1.1rem; font-weight: 800; }
         .gauge-unit { font-size: 0.65rem; color: var(--text-muted); }
 
-        /* GRILLA DE ASSET 360 */
-        .assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+        /* GRILLAS */
+        .assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
         .asset-card {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
             display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s;
@@ -127,62 +136,103 @@
         .asset-client { font-size: 0.8rem; color: var(--text-muted); }
         .badge-iot { font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 700; background: rgba(132, 204, 22, 0.15); color: var(--primary); border: 1px solid rgba(132, 204, 22, 0.3); }
 
-        /* WIZARD DE CAMPO (FIELDTECH) */
-        .step-tabs { display: flex; gap: 6px; margin-bottom: 20px; overflow-x: auto; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        /* WIZARD & PASOS */
+        .step-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; border-bottom: 1px solid var(--border); padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
         .step-tab {
-            background: var(--bg-card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px;
-            font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; white-space: nowrap; text-transform: uppercase;
+            background: var(--bg-card); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px;
+            font-size: 0.8rem; font-weight: 700; color: var(--text-muted); cursor: pointer; white-space: nowrap; text-transform: uppercase; flex-shrink: 0;
         }
         .step-tab.active { background: var(--primary-dark); color: #fff; border-color: var(--primary); }
 
         fieldset { border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; background: rgba(17, 24, 39, 0.6); }
         legend { color: var(--primary); font-weight: 700; font-size: 0.85rem; padding: 2px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
 
-        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
-        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 
         .form-group { margin-bottom: 12px; }
         label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
         input, select, textarea {
-            width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border);
-            color: var(--text-main); border-radius: 6px; font-size: 0.875rem; font-family: inherit;
+            width: 100%; padding: 12px 14px; background: var(--bg-input); border: 1px solid var(--border);
+            color: var(--text-main); border-radius: 8px; font-size: 0.9rem; font-family: inherit; transition: all 0.2s;
         }
         input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(132, 204, 22, 0.2); }
 
         button.btn-act {
-            background: var(--primary); color: #07090e; border: none; padding: 12px 20px; font-weight: 800;
+            background: var(--primary); color: #07090e; border: none; padding: 14px 20px; font-weight: 800;
             border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.03em;
         }
         button.btn-act:hover { background: #99f6e4; transform: translateY(-1px); }
-        button.btn-danger { background: var(--danger); color: #fff; border: none; padding: 6px 10px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
-        button.btn-danger:hover { background: #dc2626; }
+        button.btn-danger { background: var(--danger); color: #fff; border: none; padding: 8px 12px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
         th, td { padding: 10px; text-align: center; font-size: 0.85rem; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
         th { background: var(--bg-sidebar); color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
 
-        .checkbox-group { display: flex; align-items: center; gap: 8px; background: var(--bg-input); padding: 10px; border-radius: 6px; border: 1px solid var(--border); }
-        .checkbox-group input { width: 16px; height: 16px; accent-color: var(--primary); }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; background: var(--bg-input); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+        .checkbox-group input { width: 18px; height: 18px; accent-color: var(--primary); }
 
-        @media (max-width: 900px) {
-            .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; align-items: center; padding: 12px; }
-            .brand-logo { border-bottom: none; padding-bottom: 0; }
-            .nav-menu { flex-direction: row; overflow-x: auto; margin-top: 0; gap: 4px; }
-            .nav-item { padding: 8px 10px; font-size: 0.75rem; }
+        /* ========================================================= */
+        /* RESPONSIVE EXTREMO PARA CELULARES (MOBILE OPTIMIZATION)   */
+        /* ========================================================= */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 12px 16px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .mobile-toggle { display: block; }
+
+            .nav-menu {
+                display: none; /* Oculto en móvil por defecto */
+                flex-direction: column;
+                width: 100%;
+                margin-top: 10px;
+                gap: 6px;
+            }
+
+            .nav-menu.open { display: flex; } /* Al hacer click se despliega */
+
             .system-status { display: none; }
-            .main-wrapper { margin-left: 0; max-width: 100%; padding: 15px; }
+
+            .main-wrapper {
+                margin-left: 0;
+                max-width: 100%;
+                padding: 16px;
+            }
+
+            .top-bar { margin-bottom: 16px; padding-bottom: 12px; }
+            .page-title h1 { font-size: 1.25rem; }
+            
+            /* TODAS LAS GRILLAS A 1 COLUMNA EN CELULAR */
+            .grid-2, .grid-3, .grid-4, .assets-grid, .scada-panel-grid, .kpi-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+
+            fieldset { padding: 14px; margin-bottom: 16px; }
+
+            .btn-act { width: 100%; padding: 16px; font-size: 0.9rem; }
         }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR SCADA HMI -->
+    <!-- SIDEBAR / HEADER ADAPTABLE -->
     <aside class="sidebar">
         <div class="brand-logo">
-            ⚡ <span>POWERCORE</span>
+            <div>⚡ <span>POWERCORE</span></div>
+            <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
         </div>
-        <nav class="nav-menu">
+        <nav class="nav-menu" id="navMenu">
             <div class="nav-item active" onclick="switchView('view-dashboard', this)">📊 <span>Dashboard</span></div>
             <div class="nav-item" onclick="switchView('view-assets', this)">💻 <span>Activos 360</span></div>
             <div class="nav-item" onclick="switchView('view-pin', this)">📱 <span>Escaneo QR</span></div>
@@ -192,7 +242,7 @@
         <div class="system-status">
             <div>ESTADO HMI</div>
             <div class="status-indicator">
-                <div class="dot"></div> En Línea
+                <div class="dot"></div> <span id="syncStatus">Firebase Activo</span>
             </div>
         </div>
     </aside>
@@ -204,10 +254,10 @@
                 <h1 id="topTitle">Centro de Supervisión HMI</h1>
                 <p id="topSub">Control industrial en tiempo real y protocolos de campo</p>
             </div>
-            <button class="btn-act" onclick="switchView('view-assets', document.querySelectorAll('.nav-item')[1])">+ Nuevo Generador</button>
+            <button class="btn-act" style="width: auto;" onclick="switchView('view-assets', document.querySelectorAll('.nav-item')[1])">+ Nuevo Generador</button>
         </header>
 
-        <!-- 1. DASHBOARD POWERCORE -->
+        <!-- 1. DASHBOARD -->
         <section id="view-dashboard" class="view active">
             <div class="kpi-grid">
                 <div class="kpi-box">
@@ -239,20 +289,20 @@
                     </div>
                 </div>
                 <div class="scada-card">
-                    <div class="scada-card-title">Estado de Sincronización <span>Modo Local / Firebase Ready</span></div>
+                    <div class="scada-card-title">Sincronización Multiplataforma <span>Cloud Realtime</span></div>
                     <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
-                        <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); padding:8px 12px; border-radius:6px; font-size:0.8rem; color:#4ade80;">
-                            ✔ Almacenamiento local activo (Listo para conectar Firebase).
+                        <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); padding:10px 12px; border-radius:6px; font-size:0.8rem; color:#4ade80;">
+                            ✔ Conectado a la nube. Sincronización instantánea entre celular, tablet y PC.
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- 2. ASSET 360 & ALMACÉN POR EQUIPO -->
+        <!-- 2. ACTIVOS 360 -->
         <section id="view-assets" class="view">
             <fieldset>
-                <legend>Alta de Nuevo Generador y Pañol de Repuestos Específico</legend>
+                <legend>Alta de Nuevo Generador y Pañol Específico</legend>
                 <form id="assetForm" onsubmit="saveAsset(event)">
                     <div class="grid-3">
                         <div class="form-group"><label>Cliente</label><input type="text" id="assetClient" required placeholder="Ej. SUPARA CATARATAS"></div>
@@ -287,11 +337,11 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-act" style="margin-top: 12px;">Registrar Activo y Generar QR</button>
+                    <button type="submit" class="btn-act" style="margin-top: 12px;">Registrar Activo y Crear QR</button>
                 </form>
             </fieldset>
 
-            <h2 style="margin-top: 30px; margin-bottom: 14px;">Expediente Digital de Flota (Asset 360)</h2>
+            <h2 style="margin-top: 24px; margin-bottom: 14px;">Expediente Digital de Flota (Asset 360)</h2>
             <div class="assets-grid" id="assetsList"></div>
         </section>
 
@@ -305,14 +355,14 @@
                     
                     <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
                         <label style="margin-bottom: 8px;">PIN Corporativo de Técnico</label>
-                        <input type="password" id="pinInput" placeholder="••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; width: 180px;">
+                        <input type="password" id="pinInput" placeholder="••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; width: 100%; max-width: 200px; margin: 0 auto;">
                     </div>
                     <button type="button" class="btn-act" style="width: 100%;" onclick="validatePin()">Validar PIN e Iniciar Protocolo</button>
                 </fieldset>
             </div>
         </section>
 
-        <!-- 4. PROTOCOLO DE CAMPO POR PASOS (FIELDTECH) -->
+        <!-- 4. PROTOCOLO DE CAMPO (FIELDTECH) -->
         <section id="view-protocol" class="view">
             <div class="step-tabs">
                 <div class="step-tab active" onclick="switchStep('step-1', this)">1. Encabezado & TTA</div>
@@ -324,7 +374,6 @@
             </div>
 
             <form id="fullServiceForm" onsubmit="submitService(event)">
-                <!-- PASO 1 -->
                 <div id="step-1" class="step-content">
                     <fieldset>
                         <legend>1. Encabezado del Servicio</legend>
@@ -334,7 +383,7 @@
                             <div class="form-group"><label>Horas Último Service</label><input type="text" id="servUltimoHs" placeholder="Ej. 1111,3 Hs"></div>
                             <div class="form-group"><label>Fecha Último Service</label><input type="date" id="servUltimaFecha"></div>
                         </div>
-                        <div class="grid-4" style="margin-top: 10px;">
+                        <div class="grid-2" style="margin-top: 10px;">
                             <div class="checkbox-group"><input type="checkbox" id="typePrev" checked><label for="typePrev">Preventivo</label></div>
                             <div class="checkbox-group"><input type="checkbox" id="typeMensual" checked><label for="typeMensual">Mensual</label></div>
                             <div class="checkbox-group"><input type="checkbox" id="typeAnual"><label for="typeAnual">Anual</label></div>
@@ -366,7 +415,6 @@
                     </fieldset>
                 </div>
 
-                <!-- PASO 2 -->
                 <div id="step-2" class="step-content" style="display:none;">
                     <fieldset>
                         <legend>3. Control de Tensión y Frecuencia (En Vacío)</legend>
@@ -384,7 +432,6 @@
                     </fieldset>
                 </div>
 
-                <!-- PASO 3 -->
                 <div id="step-3" class="step-content" style="display:none;">
                     <fieldset>
                         <legend>4. Insumos, Aceite, Filtros y Baterías</legend>
@@ -411,53 +458,53 @@
                     </fieldset>
                 </div>
 
-                <!-- PASO 4 -->
                 <div id="step-4" class="step-content" style="display:none;">
                     <fieldset>
                         <legend>5. Controles con Motor en Marcha</legend>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Tiempos</th>
-                                    <th>VCC Bat.</th>
-                                    <th>Temperatura (°C)</th>
-                                    <th>VCA Gen. (L1-L2-L3)</th>
-                                    <th>Carga en A Gen.</th>
-                                    <th>Hz Gen.</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Minuto 0</td>
-                                    <td><input type="text" placeholder="28.4"></td>
-                                    <td><input type="text" placeholder="42"></td>
-                                    <td><input type="text" placeholder="236 237 236"></td>
-                                    <td><input type="text" placeholder="134 86 104"></td>
-                                    <td><input type="text" placeholder="50.0"></td>
-                                </tr>
-                                <tr>
-                                    <td>Minuto 5</td>
-                                    <td><input type="text" placeholder="28.4"></td>
-                                    <td><input type="text" placeholder="54"></td>
-                                    <td><input type="text" placeholder="236 235 235"></td>
-                                    <td><input type="text" placeholder="119 130 125"></td>
-                                    <td><input type="text" placeholder="50.0"></td>
-                                </tr>
-                                <tr>
-                                    <td>Minuto 10</td>
-                                    <td><input type="text" placeholder="28.4"></td>
-                                    <td><input type="text" placeholder="60"></td>
-                                    <td><input type="text" placeholder="236 235 235"></td>
-                                    <td><input type="text" placeholder="120 118 123"></td>
-                                    <td><input type="text" placeholder="50.0"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <div class="form-group"><label>¿Ruidos Extraños?</label><input type="text" placeholder="Sin ruidos extraños"></div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tiempos</th>
+                                        <th>VCC Bat.</th>
+                                        <th>Temp (°C)</th>
+                                        <th>VCA Gen (L1-L2-L3)</th>
+                                        <th>Carga A Gen</th>
+                                        <th>Hz Gen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Minuto 0</td>
+                                        <td><input type="text" placeholder="28.4"></td>
+                                        <td><input type="text" placeholder="42"></td>
+                                        <td><input type="text" placeholder="236 237 236"></td>
+                                        <td><input type="text" placeholder="134 86 104"></td>
+                                        <td><input type="text" placeholder="50.0"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Minuto 5</td>
+                                        <td><input type="text" placeholder="28.4"></td>
+                                        <td><input type="text" placeholder="54"></td>
+                                        <td><input type="text" placeholder="236 235 235"></td>
+                                        <td><input type="text" placeholder="119 130 125"></td>
+                                        <td><input type="text" placeholder="50.0"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Minuto 10</td>
+                                        <td><input type="text" placeholder="28.4"></td>
+                                        <td><input type="text" placeholder="60"></td>
+                                        <td><input type="text" placeholder="236 235 235"></td>
+                                        <td><input type="text" placeholder="120 118 123"></td>
+                                        <td><input type="text" placeholder="50.0"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="form-group" style="margin-top: 10px;"><label>¿Ruidos Extraños?</label><input type="text" placeholder="Sin ruidos extraños"></div>
                     </fieldset>
                 </div>
 
-                <!-- PASO 5 -->
                 <div id="step-5" class="step-content" style="display:none;">
                     <fieldset>
                         <legend>6. Control de Fugas, Limpieza e Inspección Visual</legend>
@@ -483,7 +530,6 @@
                     </fieldset>
                 </div>
 
-                <!-- PASO 6 -->
                 <div id="step-6" class="step-content" style="display:none;">
                     <fieldset>
                         <legend>7. Observaciones y Fotografías de Campo</legend>
@@ -518,9 +564,40 @@
     </main>
 
     <script>
+        // CONFIGURACIÓN DE FIREBASE REALTIME DATABASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCXJkhe5Emq-ihbcCMqYnF_N1WMI5jjd7I",
+            authDomain: "generadores-saas.firebaseapp.com",
+            databaseURL: "https://generadores-saas-default-rtdb.firebaseio.com",
+            projectId: "generadores-saas",
+            storageBucket: "generadores-saas.appspot.com",
+            messagingSenderId: "210030448519",
+            appId: "1:210030448519:web:9b224864fb84f43decd22"
+        };
+
+        let useFirebase = false;
+        let db = null;
+
+        try {
+            if (firebaseConfig.apiKey !== "TU_API_KEY") {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+                useFirebase = true;
+                document.getElementById('syncStatus').innerText = "Firebase Nube Activo";
+            } else {
+                document.getElementById('syncStatus').innerText = "Modo Local (localStorage)";
+            }
+        } catch (e) {
+            console.log("Modo local activo");
+        }
+
         const GLOBAL_PIN = "1234";
         let currentAssetId = null;
         let serviceStartTime = null;
+
+        function toggleMobileMenu() {
+            document.getElementById('navMenu').classList.toggle('open');
+        }
 
         function switchView(viewId, el) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -530,6 +607,9 @@
                 document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
                 el.classList.add('active');
             }
+
+            // En móvil, cerrar menú al hacer clic en una sección
+            document.getElementById('navMenu').classList.remove('open');
 
             if(viewId === 'view-dashboard') updateKPIs();
             if(viewId === 'view-history') renderHistory();
@@ -542,14 +622,35 @@
             tabEl.classList.add('active');
         }
 
-        function getAssets() { return JSON.parse(localStorage.getItem('genset_assets') || '[]'); }
-        function getServices() { return JSON.parse(localStorage.getItem('genset_services') || '[]'); }
+        function getAssets(callback) {
+            if (useFirebase && db) {
+                db.ref('assets').once('value', snapshot => {
+                    const data = snapshot.val() || {};
+                    const list = Object.keys(data).map(k => data[k]);
+                    callback(list);
+                });
+            } else {
+                callback(JSON.parse(localStorage.getItem('genset_assets') || '[]'));
+            }
+        }
+
+        function getServices(callback) {
+            if (useFirebase && db) {
+                db.ref('services').once('value', snapshot => {
+                    const data = snapshot.val() || {};
+                    const list = Object.keys(data).map(k => data[k]);
+                    callback(list);
+                });
+            } else {
+                callback(JSON.parse(localStorage.getItem('genset_services') || '[]'));
+            }
+        }
 
         function saveAsset(e) {
             e.preventDefault();
-            const assets = getAssets();
+            const id = 'GEN-' + Date.now().toString().slice(-5);
             const newAsset = {
-                id: 'GEN-' + Date.now().toString().slice(-5),
+                id: id,
                 client: document.getElementById('assetClient').value,
                 site: document.getElementById('assetSite').value,
                 code: document.getElementById('assetCode').value,
@@ -564,84 +665,106 @@
                     air: document.getElementById('partAir').value || 'Sin asignar'
                 }
             };
-            assets.push(newAsset);
-            localStorage.setItem('genset_assets', JSON.stringify(assets));
-            document.getElementById('assetForm').reset();
-            loadAssetsList();
-            updateKPIs();
-            alert('Generador y pañol específico registrados con éxito.');
+
+            if (useFirebase && db) {
+                db.ref('assets/' + id).set(newAsset, () => {
+                    alert('Generador guardado en la nube de Firebase.');
+                    document.getElementById('assetForm').reset();
+                    loadAssetsList();
+                    updateKPIs();
+                });
+            } else {
+                const assets = JSON.parse(localStorage.getItem('genset_assets') || '[]');
+                assets.push(newAsset);
+                localStorage.setItem('genset_assets', JSON.stringify(assets));
+                document.getElementById('assetForm').reset();
+                loadAssetsList();
+                updateKPIs();
+                alert('Generador y pañol específico registrados localmente.');
+            }
         }
 
         function deleteAsset(id) {
             if(confirm('¿Está seguro de eliminar este generador y su QR asociado?')) {
-                let assets = getAssets();
-                assets = assets.filter(a => a.id !== id);
-                localStorage.setItem('genset_assets', JSON.stringify(assets));
-                loadAssetsList();
-                updateKPIs();
+                if (useFirebase && db) {
+                    db.ref('assets/' + id).remove(() => {
+                        loadAssetsList();
+                        updateKPIs();
+                    });
+                } else {
+                    let assets = JSON.parse(localStorage.getItem('genset_assets') || '[]');
+                    assets = assets.filter(a => a.id !== id);
+                    localStorage.setItem('genset_assets', JSON.stringify(assets));
+                    loadAssetsList();
+                    updateKPIs();
+                }
             }
         }
 
         function loadAssetsList() {
-            const assets = getAssets();
-            const container = document.getElementById('assetsList');
-            container.innerHTML = '';
-            if(assets.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay generadores cargados.</p>';
-                return;
-            }
-            assets.forEach(a => {
-                const div = document.createElement('div');
-                div.className = 'asset-card';
-                div.innerHTML = `
-                    <div>
-                        <div class="asset-header">
-                            <div>
-                                <div class="asset-title">${a.nameQR}</div>
-                                <div class="asset-client">${a.client} — ${a.site}</div>
+            getAssets(assets => {
+                const container = document.getElementById('assetsList');
+                container.innerHTML = '';
+                if(assets.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay generadores cargados.</p>';
+                    return;
+                }
+                assets.forEach(a => {
+                    const div = document.createElement('div');
+                    div.className = 'asset-card';
+                    div.innerHTML = `
+                        <div>
+                            <div class="asset-header">
+                                <div>
+                                    <div class="asset-title">${a.nameQR}</div>
+                                    <div class="asset-client">${a.client} — ${a.site}</div>
+                                </div>
+                                <span class="badge-iot">${a.iot}</span>
                             </div>
-                            <span class="badge-iot">${a.iot}</span>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
+                                ID: <strong>${a.id}</strong> | Motor: ${a.motor}
+                            </p>
+                            <div style="background:rgba(0,0,0,0.2); padding:8px; border-radius:6px; font-size:0.75rem; margin-bottom:12px; border:1px solid var(--border);">
+                                <strong style="color:var(--primary);">Pañol de Repuestos Específico:</strong><br>
+                                🛢 Aceite: ${a.parts ? a.parts.oil : 'Sin asignar'}<br>
+                                ⛽ Combustible: ${a.parts ? a.parts.fuel : 'Sin asignar'}<br>
+                                💨 Aire: ${a.parts ? a.parts.air : 'Sin asignar'}
+                            </div>
+                            <div style="margin-bottom: 10px; text-align: center;">
+                                <div id="qrcode-${a.id}" style="display: inline-block; background: #fff; padding: 6px; border-radius: 4px;"></div>
+                            </div>
                         </div>
-                        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
-                            ID: <strong>${a.id}</strong> | Motor: ${a.motor}
-                        </p>
-                        <div style="background:rgba(0,0,0,0.2); padding:8px; border-radius:6px; font-size:0.75rem; margin-bottom:12px; border:1px solid var(--border);">
-                            <strong style="color:var(--primary);">Pañol de Repuestos Específico:</strong><br>
-                            🛢 Aceite: ${a.parts.oil}<br>
-                            ⛽ Combustible: ${a.parts.fuel}<br>
-                            💨 Aire: ${a.parts.air}
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn-act" style="flex:1; padding: 10px; font-size:0.75rem;" onclick="selectAsset('${a.id}')">Simular QR</button>
+                            <button class="btn-danger" onclick="deleteAsset('${a.id}')">Eliminar</button>
                         </div>
-                        <div style="margin-bottom: 10px; text-align: center;">
-                            <div id="qrcode-${a.id}" style="display: inline-block; background: #fff; padding: 6px; border-radius: 4px;"></div>
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button class="btn-act" style="flex:1; padding: 8px; font-size:0.75rem;" onclick="selectAsset('${a.id}')">Simular QR</button>
-                        <button class="btn-danger" onclick="deleteAsset('${a.id}')">Eliminar</button>
-                    </div>
-                `;
-                container.appendChild(div);
+                    `;
+                    container.appendChild(div);
 
-                setTimeout(() => {
-                    const qrContainer = document.getElementById(`qrcode-${a.id}`);
-                    if(qrContainer && qrContainer.childElementCount === 0) {
-                        new QRCode(qrContainer, {
-                            text: window.location.href.split('#')[0] + "?asset=" + a.id,
-                            width: 75,
-                            height: 75
-                        });
-                    }
-                }, 100);
+                    setTimeout(() => {
+                        const qrContainer = document.getElementById(`qrcode-${a.id}`);
+                        if(qrContainer && qrContainer.childElementCount === 0) {
+                            new QRCode(qrContainer, {
+                                text: window.location.href.split('#')[0] + "?asset=" + a.id,
+                                width: 75,
+                                height: 75
+                            });
+                        }
+                    }, 100);
+                });
             });
         }
 
         function selectAsset(id) {
             currentAssetId = id;
-            const assets = getAssets();
-            const a = assets.find(x => x.id === id);
-            document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
-            document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts.oil}`;
-            switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
+            getAssets(assets => {
+                const a = assets.find(x => x.id === id);
+                if (a) {
+                    document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
+                    document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts ? a.parts.oil : 'N/A'}`;
+                    switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
+                }
+            });
         }
 
         function validatePin() {
@@ -666,50 +789,65 @@
             }
 
             const duration = serviceStartTime ? Math.round((new Date() - serviceStartTime) / 60000) : 15;
-            const assets = getAssets();
-            const a = assets.find(x => x.id === currentAssetId);
+            const sId = 'SRV-' + Date.now().toString().slice(-5);
 
-            const services = getServices();
-            services.push({
-                id: 'SRV-' + Date.now().toString().slice(-5),
-                assetName: a ? a.nameQR : 'Generador General',
-                client: a ? a.client : 'Cliente General',
-                fecha: document.getElementById('servFecha').value,
-                tech: document.getElementById('techName').value,
-                horas: document.getElementById('inputHorasActual').value,
-                duration: duration
+            getAssets(assets => {
+                const a = assets.find(x => x.id === currentAssetId);
+                const newService = {
+                    id: sId,
+                    assetName: a ? a.nameQR : 'Generador General',
+                    client: a ? a.client : 'Cliente General',
+                    fecha: document.getElementById('servFecha').value,
+                    tech: document.getElementById('techName').value,
+                    horas: document.getElementById('inputHorasActual').value,
+                    duration: duration
+                };
+
+                if (useFirebase && db) {
+                    db.ref('services/' + sId).set(newService, () => {
+                        alert(`¡Servicio guardado en la nube!\nTiempo registrado: ${duration} minutos.`);
+                        document.getElementById('fullServiceForm').reset();
+                        updateKPIs();
+                        switchView('view-history', document.querySelectorAll('.nav-item')[4]);
+                    });
+                } else {
+                    const services = JSON.parse(localStorage.getItem('genset_services') || '[]');
+                    services.push(newService);
+                    localStorage.setItem('genset_services', JSON.stringify(services));
+                    alert(`¡Servicio guardado con éxito en la bitácora!\nTiempo registrado: ${duration} minutos.`);
+                    document.getElementById('fullServiceForm').reset();
+                    updateKPIs();
+                    switchView('view-history', document.querySelectorAll('.nav-item')[4]);
+                }
             });
-
-            localStorage.setItem('genset_services', JSON.stringify(services));
-            alert(`¡Servicio guardado con éxito en la bitácora!\nTiempo registrado: ${duration} minutos.`);
-            document.getElementById('fullServiceForm').reset();
-            updateKPIs();
-            switchView('view-history', document.querySelectorAll('.nav-item')[4]);
         }
 
         function updateKPIs() {
-            const assets = getAssets();
-            const services = getServices();
-            document.getElementById('kpiTotalAssets').innerText = assets.length;
-            document.getElementById('kpiTotalServices').innerText = services.length;
-            document.getElementById('kpiAlerts').innerText = assets.length > 0 ? "1" : "0";
+            getAssets(assets => {
+                getServices(services => {
+                    document.getElementById('kpiTotalAssets').innerText = assets.length;
+                    document.getElementById('kpiTotalServices').innerText = services.length;
+                    document.getElementById('kpiAlerts').innerText = assets.length > 0 ? "1" : "0";
+                });
+            });
         }
 
         function renderHistory() {
-            const services = getServices();
-            const container = document.getElementById('historyList');
-            container.innerHTML = '';
-            if(services.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay servicios registrados todavía.</p>';
-                return;
-            }
-            services.forEach(s => {
-                const div = document.createElement('div');
-                div.style.cssText = "background: var(--bg-card); padding: 14px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem;";
-                div.innerHTML = `<strong>Servicio ${s.id}</strong> — Equipo: ${s.assetName} (${s.client})<br>
-                <span style="color:var(--text-muted);">Fecha: ${s.fecha} | Técnico: ${s.tech} | Horas: ${s.horas} Hs | Duración: ${s.duration} min</span><br>
-                <span style="color:var(--success); font-weight:700; display:inline-block; margin-top:4px;">✔ Bitácora Actualizada y Archivo PDF Generado</span>`;
-                container.appendChild(div);
+            getServices(services => {
+                const container = document.getElementById('historyList');
+                container.innerHTML = '';
+                if(services.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay servicios registrados todavía.</p>';
+                    return;
+                }
+                services.forEach(s => {
+                    const div = document.createElement('div');
+                    div.style.cssText = "background: var(--bg-card); padding: 14px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem;";
+                    div.innerHTML = `<strong>Servicio ${s.id}</strong> — Equipo: ${s.assetName} (${s.client})<br>
+                    <span style="color:var(--text-muted);">Fecha: ${s.fecha} | Técnico: ${s.tech} | Horas: ${s.horas} Hs | Duración: ${s.duration} min</span><br>
+                    <span style="color:var(--success); font-weight:700; display:inline-block; margin-top:4px;">✔ Bitácora Actualizada y Archivo PDF Generado</span>`;
+                    container.appendChild(div);
+                });
             });
         }
 
