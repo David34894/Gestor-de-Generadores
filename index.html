@@ -9,9 +9,8 @@
     <!-- Generador QR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
-    <!-- Exportación PDF profesional -->
+    <!-- Exportación PDF profesional (jsPDF) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- SDK de Firebase (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -188,9 +187,6 @@
             fieldset { padding: 14px; margin-bottom: 16px; }
             .btn-act { width: 100%; padding: 16px; font-size: 0.9rem; }
         }
-
-        /* ESTILO PARA OCULTAR IMPRESIÓN PDF */
-        #pdfTemplate { display: none; background: #ffffff; color: #111; padding: 30px; font-family: Arial, sans-serif; }
     </style>
 </head>
 <body>
@@ -211,7 +207,7 @@
         <div class="system-status">
             <div>ESTADO HMI</div>
             <div class="status-indicator">
-                <div class="dot"></div> <span id="syncStatus">Conectando...</span>
+                <div class="dot"></div> <span id="syncStatus">Conectado...</span>
             </div>
         </div>
     </aside>
@@ -512,8 +508,7 @@
                             <div class="form-group"><label>Foto 3: Interconexión (Cámara)</label><input type="file" accept="image/*" capture="environment" id="f3" required></div>
                         </div>
                         <div class="form-group" style="margin-top: 15px;">
-                            <label>Técnico Responsable</label>
-                            <input type="text" id="techName" placeholder="Nombre, Apellido y Matrícula del Técnico" required>
+                            <label>Técnico Responsable</label><input type="text" id="techName" placeholder="Nombre, Apellido y Matrícula del Técnico" required>
                         </div>
                     </fieldset>
                     <button type="submit" class="btn-act" style="width: 100%; padding: 16px;">Finalizar Mantenimiento y Exportar PDF</button>
@@ -532,17 +527,8 @@
         </section>
     </main>
 
-    <!-- PLANILLA TÉCNICA PDF OCULTA PARA DIBUJAR -->
-    <div id="pdfTemplate">
-        <h2 style="color:#000; border-bottom:2px solid #84cc16; padding-bottom:5px;">POWERCORE™ — REPORTE DE MANTENIMIENTO TÉCNICO</h2>
-        <p id="pdfHeaderInfo" style="margin-top:10px; font-size:12px; font-weight:bold;"></p>
-        <hr style="margin:10px 0;">
-        <div id="pdfBodyContent" style="font-size:11px; line-height:1.5;"></div>
-        <div id="pdfPhotos" style="margin-top:15px; display:flex; gap:10px;"></div>
-    </div>
-
     <script>
-        // CONFIGURACIÓN DE FIREBASE REALTIME DATABASE (CONECTADO)
+        // CONFIGURACIÓN DE FIREBASE REALTIME DATABASE
         const firebaseConfig = {
             apiKey: "AIzaSyCXJkhe5Emq-ihbcCMqYnF_N1WMI5jjd7I",
             authDomain: "generadores-saas.firebaseapp.com",
@@ -599,8 +585,7 @@
             if (useFirebase && db) {
                 db.ref('assets').once('value', snapshot => {
                     const data = snapshot.val() || {};
-                    const list = Object.keys(data).map(k => data[k]);
-                    callback(list);
+                    callback(Object.keys(data).map(k => data[k]));
                 });
             } else {
                 callback(JSON.parse(localStorage.getItem('genset_assets') || '[]'));
@@ -611,8 +596,7 @@
             if (useFirebase && db) {
                 db.ref('services').once('value', snapshot => {
                     const data = snapshot.val() || {};
-                    const list = Object.keys(data).map(k => data[k]);
-                    callback(list);
+                    callback(Object.keys(data).map(k => data[k]));
                 });
             } else {
                 callback(JSON.parse(localStorage.getItem('genset_services') || '[]'));
@@ -750,31 +734,60 @@
             }
         }
 
-        // GENERACIÓN EXPORTACIÓN A PDF REAL
-        function generatePDF(serviceData) {
-            const { window } = globalThis;
+        // GENERACIÓN PROFESIONAL DE PDF CON jsPDF
+        function generatePDF(s) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
-            doc.setFontSize(16);
-            doc.text("POWERCORE™ — REPORTE DE MANTENIMIENTO TÉCNICO", 10, 15);
+            doc.setFillColor(11, 15, 23);
+            doc.rect(0, 0, 210, 25, "F");
+            doc.setTextColor(132, 204, 22);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.text("POWERCORE™ — REPORTE DE MANTENIMIENTO TÉCNICO", 14, 16);
+
+            doc.setTextColor(30, 30, 30);
             doc.setFontSize(10);
-            doc.text(`Servicio ID: ${serviceData.id} | Fecha: ${serviceData.fecha}`, 10, 22);
-            doc.text(`Cliente: ${serviceData.client} | Equipo: ${serviceData.assetName}`, 10, 27);
-            doc.text(`Técnico Responsable: ${serviceData.tech} | Horómetro: ${serviceData.horas} Hs`, 10, 32);
+            let y = 35;
 
-            doc.line(10, 36, 200, 36);
+            doc.text(`Servicio ID: ${s.id}`, 14, y);
+            doc.text(`Fecha: ${s.fecha}`, 120, y);
+            y += 8;
+            doc.text(`Cliente / Sitio: ${s.client}`, 14, y);
+            doc.text(`Equipo: ${s.assetName}`, 120, y);
+            y += 8;
+            doc.text(`Técnico Responsable: ${s.tech}`, 14, y);
+            doc.text(`Horómetro Actual: ${s.horas} Hs`, 120, y);
+            y += 8;
+            doc.text(`Duración de Servicio: ${s.duration} minutos`, 14, y);
 
-            doc.setFontSize(11);
-            doc.text("RESUMEN DE PARAMETROS Y MEDICIONES DE CAMPO:", 10, 43);
-            doc.setFontSize(9);
-            doc.text(`• Presión Aceite: ${document.getElementById('oilPres').value || '5.9 BAR'} | Temp. Motor: ${document.getElementById('m10_temp').value || '60'} °C`, 10, 50);
-            doc.text(`• Tensiones TTA (En Vacío): R-S: ${document.getElementById('vRS').value || '408'}V | Frecuencia: ${document.getElementById('vHz').value || '50.0'} Hz`, 10, 56);
-            doc.text(`• Filtros Inspeccionados: Aceite (${document.getElementById('oilFilt1').value || 'OK'}), Combustible (${document.getElementById('fuelFilt').value || 'OK'})`, 10, 62);
-            doc.text(`• Estado Bornes / Baterías: ${document.getElementById('batState').value || 'OK'} | Marcha a 10 Min: ${document.getElementById('m10_vca').value || '236V'}`, 10, 68);
-            doc.text(`• Observaciones: ${document.getElementById('obsText').value || 'Sin novedades.'}`, 10, 74);
+            y += 12;
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, y, 196, y);
+            y += 10;
 
-            doc.save(`Reporte_Servicio_${serviceData.id}.pdf`);
+            doc.setFont("helvetica", "bold");
+            doc.text("REGISTRO DE PARÁMETROS CLAVE:", 14, y);
+            y += 7;
+            doc.setFont("helvetica", "normal");
+            doc.text(`• Presión de Aceite: ${s.details.oilPres || 'N/A'} | Temp. Motor (Min 10): ${s.details.m10_temp || 'N/A'} °C`, 14, y);
+            y += 6;
+            doc.text(`• Tensión TTA (En Vacío) R-S: ${s.details.vRS || 'N/A'}V | Frecuencia: ${s.details.vHz || 'N/A'} Hz`, 14, y);
+            y += 6;
+            doc.text(`• Filtros: Aceite (${s.details.oilFilt1 || 'OK'}) | Combustible (${s.details.fuelFilt || 'OK'}) | Aire (${s.details.airFilt || 'OK'})`, 14, y);
+            y += 6;
+            doc.text(`• Baterías y Bornes: ${s.details.batState || 'OK'} | Tensión Batería: ${s.details.batVolt || 'N/A'}`, 14, y);
+            y += 6;
+            doc.text(`• Inspección de Fugas: Gases (${s.details.leakGas || 'OK'}) | Lubricante (${s.details.leakOil || 'OK'}) | Combustible (${s.details.leakFuel || 'OK'})`, 14, y);
+
+            y += 12;
+            doc.setFont("helvetica", "bold");
+            doc.text("OBSERVACIONES GENERALES:", 14, y);
+            y += 7;
+            doc.setFont("helvetica", "normal");
+            doc.text(s.details.obsText || 'Sin observaciones adicionales.', 14, y, { maxWidth: 180 });
+
+            doc.save(`Reporte_Mantenimiento_${s.id}.pdf`);
         }
 
         function submitService(e) {
@@ -800,7 +813,22 @@
                     fecha: document.getElementById('servFecha').value,
                     tech: document.getElementById('techName').value,
                     horas: document.getElementById('inputHorasActual').value,
-                    duration: duration
+                    duration: duration,
+                    details: {
+                        oilPres: document.getElementById('oilPres').value,
+                        m10_temp: document.getElementById('m10_temp').value,
+                        vRS: document.getElementById('vRS').value,
+                        vHz: document.getElementById('vHz').value,
+                        oilFilt1: document.getElementById('oilFilt1').value,
+                        fuelFilt: document.getElementById('fuelFilt').value,
+                        airFilt: document.getElementById('airFilt').value,
+                        batState: document.getElementById('batState').value,
+                        batVolt: document.getElementById('batVolt').value,
+                        leakGas: document.getElementById('leakGas').value,
+                        leakOil: document.getElementById('leakOil').value,
+                        leakFuel: document.getElementById('leakFuel').value,
+                        obsText: document.getElementById('obsText').value
+                    }
                 };
 
                 const saveFinished = () => {
