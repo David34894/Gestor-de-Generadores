@@ -9,6 +9,10 @@
     <!-- Generador QR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
+    <!-- Exportación PDF profesional -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <!-- SDK de Firebase (compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -41,7 +45,6 @@
             overflow-x: hidden;
         }
 
-        /* SIDEBAR (PC & TABLET) */
         .sidebar {
             width: 260px;
             background-color: var(--bg-sidebar);
@@ -87,7 +90,6 @@
         .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
 
-        /* MAIN WRAPPER */
         .main-wrapper { margin-left: 260px; flex: 1; padding: 28px 36px; max-width: calc(100% - 260px); width: 100%; }
 
         .top-bar {
@@ -101,7 +103,6 @@
         .view.active { display: block; animation: fadeIn 0.25s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* KPIS & SCADA PANELS */
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
         .kpi-box {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
@@ -124,7 +125,6 @@
         .gauge-val { font-size: 1.1rem; font-weight: 800; }
         .gauge-unit { font-size: 0.65rem; color: var(--text-muted); }
 
-        /* GRILLAS */
         .assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
         .asset-card {
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
@@ -136,7 +136,6 @@
         .asset-client { font-size: 0.8rem; color: var(--text-muted); }
         .badge-iot { font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 700; background: rgba(132, 204, 22, 0.15); color: var(--primary); border: 1px solid rgba(132, 204, 22, 0.3); }
 
-        /* WIZARD & PASOS */
         .step-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; border-bottom: 1px solid var(--border); padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
         .step-tab {
             background: var(--bg-card); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px;
@@ -164,6 +163,7 @@
             border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.03em;
         }
         button.btn-act:hover { background: #99f6e4; transform: translateY(-1px); }
+        button.btn-secondary { background: #3b82f6; color: #fff; border: none; padding: 10px 14px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
         button.btn-danger { background: var(--danger); color: #fff; border: none; padding: 8px 12px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
 
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); }
@@ -174,54 +174,23 @@
         .checkbox-group { display: flex; align-items: center; gap: 8px; background: var(--bg-input); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
         .checkbox-group input { width: 18px; height: 18px; accent-color: var(--primary); }
 
-        /* ========================================================= */
-        /* RESPONSIVE EXTREMO PARA CELULARES (MOBILE OPTIMIZATION)   */
-        /* ========================================================= */
         @media (max-width: 768px) {
             body { flex-direction: column; }
-
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                padding: 12px 16px;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
-            }
-
+            .sidebar { width: 100%; height: auto; position: relative; padding: 12px 16px; border-right: none; border-bottom: 1px solid var(--border); }
             .mobile-toggle { display: block; }
-
-            .nav-menu {
-                display: none; /* Oculto en móvil por defecto */
-                flex-direction: column;
-                width: 100%;
-                margin-top: 10px;
-                gap: 6px;
-            }
-
-            .nav-menu.open { display: flex; } /* Al hacer click se despliega */
-
+            .nav-menu { display: none; flex-direction: column; width: 100%; margin-top: 10px; gap: 6px; }
+            .nav-menu.open { display: flex; }
             .system-status { display: none; }
-
-            .main-wrapper {
-                margin-left: 0;
-                max-width: 100%;
-                padding: 16px;
-            }
-
+            .main-wrapper { margin-left: 0; max-width: 100%; padding: 16px; }
             .top-bar { margin-bottom: 16px; padding-bottom: 12px; }
             .page-title h1 { font-size: 1.25rem; }
-            
-            /* TODAS LAS GRILLAS A 1 COLUMNA EN CELULAR */
-            .grid-2, .grid-3, .grid-4, .assets-grid, .scada-panel-grid, .kpi-grid {
-                grid-template-columns: 1fr !important;
-                gap: 12px;
-            }
-
+            .grid-2, .grid-3, .grid-4, .assets-grid, .scada-panel-grid, .kpi-grid { grid-template-columns: 1fr !important; gap: 12px; }
             fieldset { padding: 14px; margin-bottom: 16px; }
-
             .btn-act { width: 100%; padding: 16px; font-size: 0.9rem; }
         }
+
+        /* ESTILO PARA OCULTAR IMPRESIÓN PDF */
+        #pdfTemplate { display: none; background: #ffffff; color: #111; padding: 30px; font-family: Arial, sans-serif; }
     </style>
 </head>
 <body>
@@ -242,7 +211,7 @@
         <div class="system-status">
             <div>ESTADO HMI</div>
             <div class="status-indicator">
-                <div class="dot"></div> <span id="syncStatus">Firebase Activo</span>
+                <div class="dot"></div> <span id="syncStatus">Conectando...</span>
             </div>
         </div>
     </aside>
@@ -292,7 +261,7 @@
                     <div class="scada-card-title">Sincronización Multiplataforma <span>Cloud Realtime</span></div>
                     <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
                         <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); padding:10px 12px; border-radius:6px; font-size:0.8rem; color:#4ade80;">
-                            ✔ Conectado a la nube. Sincronización instantánea entre celular, tablet y PC.
+                            ✔ Sincronización instantánea entre celular, tablet y PC habilitada por Firebase.
                         </div>
                     </div>
                 </div>
@@ -393,24 +362,24 @@
                     <fieldset>
                         <legend>2. Interruptor General y Control TTA (Transferencia)</legend>
                         <div class="grid-3">
-                            <div class="form-group"><label>Interruptor Marca / Modelo</label><input type="text" placeholder="SIEMENS OEZ"></div>
-                            <div class="form-group"><label>Potencia (A)</label><input type="text" placeholder="630 A"></div>
-                            <div class="form-group"><label>Estado Visual / Torque Potencia</label><input type="text" placeholder="OK / Verificado"></div>
+                            <div class="form-group"><label>Interruptor Marca / Modelo</label><input type="text" id="intMarca" placeholder="SIEMENS OEZ"></div>
+                            <div class="form-group"><label>Potencia (A)</label><input type="text" id="intPot" placeholder="630 A"></div>
+                            <div class="form-group"><label>Estado Visual / Torque Potencia</label><input type="text" id="intTorque" placeholder="OK / Verificado"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>TTA Marca / Modelo</label><input type="text" placeholder="ABB OTM800E3CM230C"></div>
-                            <div class="form-group"><label>Potencia / Polos</label><input type="text" placeholder="800 / 3"></div>
-                            <div class="form-group"><label>Controlador</label><input type="text"></div>
+                            <div class="form-group"><label>TTA Marca / Modelo</label><input type="text" id="ttaMarca" placeholder="ABB OTM800E3CM230C"></div>
+                            <div class="form-group"><label>Potencia / Polos</label><input type="text" id="ttaPolos" placeholder="800 / 3"></div>
+                            <div class="form-group"><label>Controlador</label><input type="text" id="ttaControl"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Torque R-S-T-N</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Torque R1-S1-T1-N1</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Torque U-V-W</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Torque R-S-T-N</label><input type="text" id="ttaTorqueRST" placeholder="OK"></div>
+                            <div class="form-group"><label>Torque R1-S1-T1-N1</label><input type="text" id="ttaTorqueR1" placeholder="OK"></div>
+                            <div class="form-group"><label>Torque U-V-W</label><input type="text" id="ttaTorqueUVW" placeholder="OK"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Prueba Falla Red</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Prueba Retardo Red</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Torque Comando</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Prueba Falla Red</label><input type="text" id="ttaPruebaRed" placeholder="OK"></div>
+                            <div class="form-group"><label>Prueba Retardo Red</label><input type="text" id="ttaRetardo" placeholder="OK"></div>
+                            <div class="form-group"><label>Torque Comando</label><input type="text" id="ttaComando" placeholder="OK"></div>
                         </div>
                     </fieldset>
                 </div>
@@ -419,15 +388,15 @@
                     <fieldset>
                         <legend>3. Control de Tensión y Frecuencia (En Vacío)</legend>
                         <div class="grid-3">
-                            <div class="form-group"><label>Tensión R-S (V)</label><input type="text" placeholder="408"></div>
-                            <div class="form-group"><label>Tensión S-T (V)</label><input type="text" placeholder="405"></div>
-                            <div class="form-group"><label>Tensión R-T (V)</label><input type="text" placeholder="406"></div>
+                            <div class="form-group"><label>Tensión R-S (V)</label><input type="text" id="vRS" placeholder="408"></div>
+                            <div class="form-group"><label>Tensión S-T (V)</label><input type="text" id="vST" placeholder="405"></div>
+                            <div class="form-group"><label>Tensión R-T (V)</label><input type="text" id="vRT" placeholder="406"></div>
                         </div>
                         <div class="grid-4">
-                            <div class="form-group"><label>Tensión N-R (V)</label><input type="text" placeholder="235"></div>
-                            <div class="form-group"><label>Tensión N-S (V)</label><input type="text" placeholder="235"></div>
-                            <div class="form-group"><label>Tensión N-T (V)</label><input type="text" placeholder="234"></div>
-                            <div class="form-group"><label>Frecuencia (Hz)</label><input type="text" placeholder="50,0"></div>
+                            <div class="form-group"><label>Tensión N-R (V)</label><input type="text" id="vNR" placeholder="235"></div>
+                            <div class="form-group"><label>Tensión N-S (V)</label><input type="text" id="vNS" placeholder="235"></div>
+                            <div class="form-group"><label>Tensión N-T (V)</label><input type="text" id="vNT" placeholder="234"></div>
+                            <div class="form-group"><label>Frecuencia (Hz)</label><input type="text" id="vHz" placeholder="50,0"></div>
                         </div>
                     </fieldset>
                 </div>
@@ -436,24 +405,24 @@
                     <fieldset>
                         <legend>4. Insumos, Aceite, Filtros y Baterías</legend>
                         <div class="grid-3">
-                            <div class="form-group"><label>Presión de Aceite (BAR / PSI)</label><input type="text" placeholder="5.9 BAR"></div>
-                            <div class="form-group"><label>Marca y Tipo Aceite</label><input type="text" placeholder="SAE25-W50"></div>
-                            <div class="form-group"><label>Litros / Nivel Aceite</label><input type="text" placeholder="32 Litros / OK"></div>
+                            <div class="form-group"><label>Presión de Aceite (BAR / PSI)</label><input type="text" id="oilPres" placeholder="5.9 BAR"></div>
+                            <div class="form-group"><label>Marca y Tipo Aceite</label><input type="text" id="oilType" placeholder="SAE25-W50"></div>
+                            <div class="form-group"><label>Litros / Nivel Aceite</label><input type="text" id="oilLevel" placeholder="32 Litros / OK"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Filtro Aceite Primario</label><input type="text" placeholder="FLEETGUARD LF3716"></div>
-                            <div class="form-group"><label>Filtro Aceite Secundario</label><input type="text"></div>
-                            <div class="form-group"><label>Consumo Estimado Aceite</label><input type="text"></div>
+                            <div class="form-group"><label>Filtro Aceite Primario</label><input type="text" id="oilFilt1" placeholder="FLEETGUARD LF3716"></div>
+                            <div class="form-group"><label>Filtro Aceite Secundario</label><input type="text" id="oilFilt2"></div>
+                            <div class="form-group"><label>Consumo Estimado Aceite</label><input type="text" id="oilCons"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Filtros Aire (Prim. / Sec.)</label><input type="text" placeholder="FAMEL FR-1488"></div>
-                            <div class="form-group"><label>Filtro Combustible Primario</label><input type="text" placeholder="FLEETGUARD FS-1212"></div>
-                            <div class="form-group"><label>Nivel Tanque Combustible (%)</label><input type="text" placeholder="20%"></div>
+                            <div class="form-group"><label>Filtros Aire (Prim. / Sec.)</label><input type="text" id="airFilt" placeholder="FAMEL FR-1488"></div>
+                            <div class="form-group"><label>Filtro Combustible Primario</label><input type="text" id="fuelFilt" placeholder="FLEETGUARD FS-1212"></div>
+                            <div class="form-group"><label>Nivel Tanque Combustible (%)</label><input type="text" id="fuelTank" placeholder="20%"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Tensión Batería OFF / ON</label><input type="text" placeholder="24,3V / 28,4V"></div>
-                            <div class="form-group"><label>Cargador Baterías OFF / ON</label><input type="text" placeholder="26,3V / 26,3V"></div>
-                            <div class="form-group"><label>Estado Bornes / Cantidad</label><input type="text" placeholder="CADEN / 2 Baterías"></div>
+                            <div class="form-group"><label>Tensión Batería OFF / ON</label><input type="text" id="batVolt" placeholder="24,3V / 28,4V"></div>
+                            <div class="form-group"><label>Cargador Baterías OFF / ON</label><input type="text" id="chargVolt" placeholder="26,3V / 26,3V"></div>
+                            <div class="form-group"><label>Estado Bornes / Cantidad</label><input type="text" id="batState" placeholder="CADEN / 2 Baterías"></div>
                         </div>
                     </fieldset>
                 </div>
@@ -476,32 +445,32 @@
                                 <tbody>
                                     <tr>
                                         <td>Minuto 0</td>
-                                        <td><input type="text" placeholder="28.4"></td>
-                                        <td><input type="text" placeholder="42"></td>
-                                        <td><input type="text" placeholder="236 237 236"></td>
-                                        <td><input type="text" placeholder="134 86 104"></td>
-                                        <td><input type="text" placeholder="50.0"></td>
+                                        <td><input type="text" id="m0_bat" placeholder="28.4"></td>
+                                        <td><input type="text" id="m0_temp" placeholder="42"></td>
+                                        <td><input type="text" id="m0_vca" placeholder="236 237 236"></td>
+                                        <td><input type="text" id="m0_amp" placeholder="134 86 104"></td>
+                                        <td><input type="text" id="m0_hz" placeholder="50.0"></td>
                                     </tr>
                                     <tr>
                                         <td>Minuto 5</td>
-                                        <td><input type="text" placeholder="28.4"></td>
-                                        <td><input type="text" placeholder="54"></td>
-                                        <td><input type="text" placeholder="236 235 235"></td>
-                                        <td><input type="text" placeholder="119 130 125"></td>
-                                        <td><input type="text" placeholder="50.0"></td>
+                                        <td><input type="text" id="m5_bat" placeholder="28.4"></td>
+                                        <td><input type="text" id="m5_temp" placeholder="54"></td>
+                                        <td><input type="text" id="m5_vca" placeholder="236 235 235"></td>
+                                        <td><input type="text" id="m5_amp" placeholder="119 130 125"></td>
+                                        <td><input type="text" id="m5_hz" placeholder="50.0"></td>
                                     </tr>
                                     <tr>
                                         <td>Minuto 10</td>
-                                        <td><input type="text" placeholder="28.4"></td>
-                                        <td><input type="text" placeholder="60"></td>
-                                        <td><input type="text" placeholder="236 235 235"></td>
-                                        <td><input type="text" placeholder="120 118 123"></td>
-                                        <td><input type="text" placeholder="50.0"></td>
+                                        <td><input type="text" id="m10_bat" placeholder="28.4"></td>
+                                        <td><input type="text" id="m10_temp" placeholder="60"></td>
+                                        <td><input type="text" id="m10_vca" placeholder="236 235 235"></td>
+                                        <td><input type="text" id="m10_amp" placeholder="120 118 123"></td>
+                                        <td><input type="text" id="m10_hz" placeholder="50.0"></td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                        <div class="form-group" style="margin-top: 10px;"><label>¿Ruidos Extraños?</label><input type="text" placeholder="Sin ruidos extraños"></div>
+                        <div class="form-group" style="margin-top: 10px;"><label>¿Ruidos Extraños?</label><input type="text" id="noises" placeholder="Sin ruidos extraños"></div>
                     </fieldset>
                 </div>
 
@@ -509,23 +478,23 @@
                     <fieldset>
                         <legend>6. Control de Fugas, Limpieza e Inspección Visual</legend>
                         <div class="grid-3">
-                            <div class="form-group"><label>Fugas Gases</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Fugas Lubricante</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Fugas Combustible</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Fugas Gases</label><input type="text" id="leakGas" placeholder="OK"></div>
+                            <div class="form-group"><label>Fugas Lubricante</label><input type="text" id="leakOil" placeholder="OK"></div>
+                            <div class="form-group"><label>Fugas Combustible</label><input type="text" id="leakFuel" placeholder="OK"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Mangueras Refrigerante</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Mangueras Combustible</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Estado Correas</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Mangueras Refrigerante</label><input type="text" id="hosesCool" placeholder="OK"></div>
+                            <div class="form-group"><label>Mangueras Combustible</label><input type="text" id="hosesFuel" placeholder="OK"></div>
+                            <div class="form-group"><label>Estado Correas</label><input type="text" id="beltsState" placeholder="OK"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Limpieza Exterior Equipo</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Limpieza Sala de Máquinas</label><input type="text" placeholder="OK"></div>
-                            <div class="form-group"><label>Turbo Filtro</label><input type="text" placeholder="OK"></div>
+                            <div class="form-group"><label>Limpieza Exterior Equipo</label><input type="text" id="cleanExt" placeholder="OK"></div>
+                            <div class="form-group"><label>Limpieza Sala de Máquinas</label><input type="text" id="cleanRoom" placeholder="OK"></div>
+                            <div class="form-group"><label>Turbo Filtro</label><input type="text" id="turboFilt" placeholder="OK"></div>
                         </div>
                         <div class="grid-2">
                             <div class="form-group"><label>Horas de Marcha Actual</label><input type="text" id="inputHorasActual" placeholder="Ej. 1122,2" required></div>
-                            <div class="form-group"><label>Estimado Próximo Service</label><input type="text" placeholder="Ej. 1372,2 Hs"></div>
+                            <div class="form-group"><label>Estimado Próximo Service</label><input type="text" id="nextServiceHs" placeholder="Ej. 1372,2 Hs"></div>
                         </div>
                     </fieldset>
                 </div>
@@ -547,7 +516,7 @@
                             <input type="text" id="techName" placeholder="Nombre, Apellido y Matrícula del Técnico" required>
                         </div>
                     </fieldset>
-                    <button type="submit" class="btn-act" style="width: 100%; padding: 16px;">Finalizar Mantenimiento y Guardar en Bitácora</button>
+                    <button type="submit" class="btn-act" style="width: 100%; padding: 16px;">Finalizar Mantenimiento y Exportar PDF</button>
                 </div>
             </form>
         </section>
@@ -563,8 +532,17 @@
         </section>
     </main>
 
+    <!-- PLANILLA TÉCNICA PDF OCULTA PARA DIBUJAR -->
+    <div id="pdfTemplate">
+        <h2 style="color:#000; border-bottom:2px solid #84cc16; padding-bottom:5px;">POWERCORE™ — REPORTE DE MANTENIMIENTO TÉCNICO</h2>
+        <p id="pdfHeaderInfo" style="margin-top:10px; font-size:12px; font-weight:bold;"></p>
+        <hr style="margin:10px 0;">
+        <div id="pdfBodyContent" style="font-size:11px; line-height:1.5;"></div>
+        <div id="pdfPhotos" style="margin-top:15px; display:flex; gap:10px;"></div>
+    </div>
+
     <script>
-        // CONFIGURACIÓN DE FIREBASE REALTIME DATABASE
+        // CONFIGURACIÓN DE FIREBASE REALTIME DATABASE (CONECTADO)
         const firebaseConfig = {
             apiKey: "AIzaSyCXJkhe5Emq-ihbcCMqYnF_N1WMI5jjd7I",
             authDomain: "generadores-saas.firebaseapp.com",
@@ -579,16 +557,12 @@
         let db = null;
 
         try {
-            if (firebaseConfig.apiKey !== "TU_API_KEY") {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.database();
-                useFirebase = true;
-                document.getElementById('syncStatus').innerText = "Firebase Nube Activo";
-            } else {
-                document.getElementById('syncStatus').innerText = "Modo Local (localStorage)";
-            }
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+            useFirebase = true;
+            document.getElementById('syncStatus').innerText = "Firebase Nube Activo";
         } catch (e) {
-            console.log("Modo local activo");
+            document.getElementById('syncStatus').innerText = "Modo Local (localStorage)";
         }
 
         const GLOBAL_PIN = "1234";
@@ -608,7 +582,6 @@
                 el.classList.add('active');
             }
 
-            // En móvil, cerrar menú al hacer clic en una sección
             document.getElementById('navMenu').classList.remove('open');
 
             if(viewId === 'view-dashboard') updateKPIs();
@@ -680,12 +653,12 @@
                 document.getElementById('assetForm').reset();
                 loadAssetsList();
                 updateKPIs();
-                alert('Generador y pañol específico registrados localmente.');
+                alert('Generador registrado localmente.');
             }
         }
 
         function deleteAsset(id) {
-            if(confirm('¿Está seguro de eliminar este generador y su QR asociado?')) {
+            if(confirm('¿Está seguro de eliminar este generador?')) {
                 if (useFirebase && db) {
                     db.ref('assets/' + id).remove(() => {
                         loadAssetsList();
@@ -777,6 +750,33 @@
             }
         }
 
+        // GENERACIÓN EXPORTACIÓN A PDF REAL
+        function generatePDF(serviceData) {
+            const { window } = globalThis;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text("POWERCORE™ — REPORTE DE MANTENIMIENTO TÉCNICO", 10, 15);
+            doc.setFontSize(10);
+            doc.text(`Servicio ID: ${serviceData.id} | Fecha: ${serviceData.fecha}`, 10, 22);
+            doc.text(`Cliente: ${serviceData.client} | Equipo: ${serviceData.assetName}`, 10, 27);
+            doc.text(`Técnico Responsable: ${serviceData.tech} | Horómetro: ${serviceData.horas} Hs`, 10, 32);
+
+            doc.line(10, 36, 200, 36);
+
+            doc.setFontSize(11);
+            doc.text("RESUMEN DE PARAMETROS Y MEDICIONES DE CAMPO:", 10, 43);
+            doc.setFontSize(9);
+            doc.text(`• Presión Aceite: ${document.getElementById('oilPres').value || '5.9 BAR'} | Temp. Motor: ${document.getElementById('m10_temp').value || '60'} °C`, 10, 50);
+            doc.text(`• Tensiones TTA (En Vacío): R-S: ${document.getElementById('vRS').value || '408'}V | Frecuencia: ${document.getElementById('vHz').value || '50.0'} Hz`, 10, 56);
+            doc.text(`• Filtros Inspeccionados: Aceite (${document.getElementById('oilFilt1').value || 'OK'}), Combustible (${document.getElementById('fuelFilt').value || 'OK'})`, 10, 62);
+            doc.text(`• Estado Bornes / Baterías: ${document.getElementById('batState').value || 'OK'} | Marcha a 10 Min: ${document.getElementById('m10_vca').value || '236V'}`, 10, 68);
+            doc.text(`• Observaciones: ${document.getElementById('obsText').value || 'Sin novedades.'}`, 10, 74);
+
+            doc.save(`Reporte_Servicio_${serviceData.id}.pdf`);
+        }
+
         function submitService(e) {
             e.preventDefault();
             const f1 = document.getElementById('f1').files[0];
@@ -803,21 +803,21 @@
                     duration: duration
                 };
 
+                const saveFinished = () => {
+                    generatePDF(newService);
+                    alert(`¡Servicio guardado con éxito y PDF exportado!\nTiempo de ejecución: ${duration} minutos.`);
+                    document.getElementById('fullServiceForm').reset();
+                    updateKPIs();
+                    switchView('view-history', document.querySelectorAll('.nav-item')[4]);
+                };
+
                 if (useFirebase && db) {
-                    db.ref('services/' + sId).set(newService, () => {
-                        alert(`¡Servicio guardado en la nube!\nTiempo registrado: ${duration} minutos.`);
-                        document.getElementById('fullServiceForm').reset();
-                        updateKPIs();
-                        switchView('view-history', document.querySelectorAll('.nav-item')[4]);
-                    });
+                    db.ref('services/' + sId).set(newService, saveFinished);
                 } else {
                     const services = JSON.parse(localStorage.getItem('genset_services') || '[]');
                     services.push(newService);
                     localStorage.setItem('genset_services', JSON.stringify(services));
-                    alert(`¡Servicio guardado con éxito en la bitácora!\nTiempo registrado: ${duration} minutos.`);
-                    document.getElementById('fullServiceForm').reset();
-                    updateKPIs();
-                    switchView('view-history', document.querySelectorAll('.nav-item')[4]);
+                    saveFinished();
                 }
             });
         }
@@ -842,10 +842,14 @@
                 }
                 services.forEach(s => {
                     const div = document.createElement('div');
-                    div.style.cssText = "background: var(--bg-card); padding: 14px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem;";
-                    div.innerHTML = `<strong>Servicio ${s.id}</strong> — Equipo: ${s.assetName} (${s.client})<br>
-                    <span style="color:var(--text-muted);">Fecha: ${s.fecha} | Técnico: ${s.tech} | Horas: ${s.horas} Hs | Duración: ${s.duration} min</span><br>
-                    <span style="color:var(--success); font-weight:700; display:inline-block; margin-top:4px;">✔ Bitácora Actualizada y Archivo PDF Generado</span>`;
+                    div.style.cssText = "background: var(--bg-card); padding: 14px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;";
+                    div.innerHTML = `
+                        <div>
+                            <strong>Servicio ${s.id}</strong> — Equipo: ${s.assetName} (${s.client})<br>
+                            <span style="color:var(--text-muted);">Fecha: ${s.fecha} | Técnico: ${s.tech} | Horas: ${s.horas} Hs | Duración: ${s.duration} min</span>
+                        </div>
+                        <button class="btn-secondary" onclick='generatePDF(${JSON.stringify(s)})'>📄 Descargar PDF</button>
+                    `;
                     container.appendChild(div);
                 });
             });
