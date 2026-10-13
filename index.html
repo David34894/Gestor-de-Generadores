@@ -11,7 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
-    <!-- SDK de Firebase (compat) -->
+    <!-- SDK de Firebase (Compat para Base de Datos y App) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -533,15 +533,15 @@
     </main>
 
     <script>
-        // CONFIGURACIÓN DE FIREBASE REALTIME DATABASE
+        // CONFIGURACIÓN DE FIREBASE REALTIME DATABASE (COMPAT)
         const firebaseConfig = {
             apiKey: "AIzaSyCXJkhe5Emq-ihbcCMqYnF_N1WMI5jjd7I",
             authDomain: "generadores-saas.firebaseapp.com",
             databaseURL: "https://generadores-saas-default-rtdb.firebaseio.com",
             projectId: "generadores-saas",
-            storageBucket: "generadores-saas.appspot.com",
+            storageBucket: "generadores-saas.firebasestorage.app",
             messagingSenderId: "210030448519",
-            appId: "1:210030448519:web:9b224864fb84f43decd22"
+            appId: "1:210030448519:web:9b224864fb84fa43decd22"
         };
 
         let useFirebase = false;
@@ -576,7 +576,6 @@
 
             document.getElementById('navMenu').classList.remove('open');
 
-            // Control de la cámara de escaneo QR
             if(viewId === 'view-pin') {
                 initQrScanner();
             } else {
@@ -599,6 +598,8 @@
                 db.ref('assets').once('value', snapshot => {
                     const data = snapshot.val() || {};
                     callback(Object.keys(data).map(k => data[k]));
+                }).catch(() => {
+                    callback(JSON.parse(localStorage.getItem('genset_assets') || '[]'));
                 });
             } else {
                 callback(JSON.parse(localStorage.getItem('genset_assets') || '[]'));
@@ -610,6 +611,8 @@
                 db.ref('services').once('value', snapshot => {
                     const data = snapshot.val() || {};
                     callback(Object.keys(data).map(k => data[k]));
+                }).catch(() => {
+                    callback(JSON.parse(localStorage.getItem('genset_services') || '[]'));
                 });
             } else {
                 callback(JSON.parse(localStorage.getItem('genset_services') || '[]'));
@@ -645,7 +648,14 @@
             };
 
             if (useFirebase && db) {
-                db.ref('assets/' + id).set(newAsset, finalizeAssetSave);
+                db.ref('assets/' + id).set(newAsset).then(finalizeAssetSave).catch(err => {
+                    console.error(err);
+                    // Fallback local si falla la red
+                    const assets = JSON.parse(localStorage.getItem('genset_assets') || '[]');
+                    assets.push(newAsset);
+                    localStorage.setItem('genset_assets', JSON.stringify(assets));
+                    finalizeAssetSave();
+                });
             } else {
                 const assets = JSON.parse(localStorage.getItem('genset_assets') || '[]');
                 assets.push(newAsset);
@@ -657,7 +667,7 @@
         function deleteAsset(id) {
             if(confirm('¿Está seguro de eliminar este generador?')) {
                 if (useFirebase && db) {
-                    db.ref('assets/' + id).remove(() => {
+                    db.ref('assets/' + id).remove().then(() => {
                         loadAssetsList();
                         updateKPIs();
                     });
@@ -726,7 +736,6 @@
         }
 
         function selectAsset(id) {
-            currentAssetId = id;
             getAssets(assets => {
                 const a = assets.find(x => x.id === id || x.id.includes(id));
                 if (a) {
@@ -735,12 +744,11 @@
                     document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts ? a.parts.oil : 'N/A'}`;
                     alert(`Activo seleccionado: ${a.nameQR}. Ingrese su PIN para continuar.`);
                 } else {
-                    alert('Activo no encontrado.');
+                    alert('Activo no encontrado en la base de datos.');
                 }
             });
         }
 
-        // INICIALIZAR LECTURA DE QR CON CÁMARA
         function initQrScanner() {
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
@@ -752,9 +760,9 @@
                     selectAsset(decodedText.trim());
                     stopQrScanner();
                 },
-                (errorMessage) => { /* Escaneando en curso */ }
+                (errorMessage) => { }
             ).catch(err => {
-                console.log("Cámara no disponible o permisos denegados", err);
+                console.log("Cámara no disponible", err);
             });
         }
 
@@ -778,7 +786,6 @@
             }
         }
 
-        // GENERACIÓN PROFESIONAL DE PDF
         function generatePDF(s) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -884,7 +891,12 @@
                 };
 
                 if (useFirebase && db) {
-                    db.ref('services/' + sId).set(newService, saveFinished);
+                    db.ref('services/' + sId).set(newService).then(saveFinished).catch(() => {
+                        const services = JSON.parse(localStorage.getItem('genset_services') || '[]');
+                        services.push(newService);
+                        localStorage.setItem('genset_services', JSON.stringify(services));
+                        saveFinished();
+                    });
                 } else {
                     const services = JSON.parse(localStorage.getItem('genset_services') || '[]');
                     services.push(newService);
