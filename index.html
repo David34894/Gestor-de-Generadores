@@ -139,6 +139,7 @@
         .asset-client { font-size: 0.8rem; color: var(--text-muted); }
         .badge-iot { font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 700; background: rgba(132, 204, 22, 0.15); color: var(--primary); border: 1px solid rgba(132, 204, 22, 0.3); }
         .qr-box { display: inline-block; background: #fff; padding: 6px; border-radius: 4px; }
+        .qr-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
 
         .step-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; border-bottom: 1px solid var(--border); padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
         .step-tab {
@@ -682,7 +683,7 @@
         }
 
         // =========================================================
-        //  GUARDAR ACTIVO + CREAR QR (CORREGIDO)
+        //  GUARDAR ACTIVO + CREAR QR CON URL
         // =========================================================
         function saveAsset(e) {
             e.preventDefault();
@@ -706,12 +707,10 @@
                 createdAt: new Date().toISOString()
             };
 
-            // Guardar localmente SIEMPRE
             const assets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
             assets.push(newAsset);
             localStorage.setItem(assetsKey(), JSON.stringify(assets));
 
-            // Reset del hash para forzar re-render limpio
             lastAssetsHash = '';
 
             const finalize = () => {
@@ -720,7 +719,7 @@
                 loadAssetsList(true);
                 updateKPIs();
                 setTimeout(() => {
-                    alert(`✅ Generador "${newAsset.nameQR}" registrado.\n🆔 ID: ${id}\n📱 QR creado y listo para escanear.`);
+                    alert(`✅ Generador "${newAsset.nameQR}" registrado.\n🆔 ID: ${id}\n📱 QR creado con URL de acceso directo.`);
                 }, 250);
             };
 
@@ -748,7 +747,7 @@
         }
 
         // =========================================================
-        //  RENDER DE LA LISTA DE ACTIVOS + QR (CORREGIDO)
+        //  RENDER DE ACTIVOS + QR CON URL (?asset=GEN-XXXXX)
         // =========================================================
         function loadAssetsList(force = false) {
             getAssets(assets => {
@@ -789,6 +788,7 @@
                             </div>
                             <div style="margin-bottom: 10px; text-align: center;">
                                 <div class="qr-box" data-qr-id="${a.id}"></div>
+                                <div class="qr-label">📱 ${a.nameQR}</div>
                             </div>
                         </div>
                         <div style="display:flex; gap:8px;">
@@ -798,14 +798,16 @@
                     `;
                     container.appendChild(div);
 
-                    // Generación EXPLÍCITA e inmediata del QR (sin depender de setTimeout global)
                     const qrBox = div.querySelector(`[data-qr-id="${a.id}"]`);
                     if (qrBox) {
                         try {
+                            // URL que abre la app con el generador precargado
+                            const baseUrl = window.location.origin + window.location.pathname;
+                            const qrUrl = baseUrl + '?asset=' + encodeURIComponent(a.id);
                             new QRCode(qrBox, {
-                                text: a.id,
-                                width: 75,
-                                height: 75,
+                                text: qrUrl,
+                                width: 90,
+                                height: 90,
                                 colorDark: "#000000",
                                 colorLight: "#ffffff",
                                 correctLevel: QRCode.CorrectLevel.M
@@ -826,8 +828,11 @@
                     currentAssetId = a.id;
                     document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
                     document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts ? a.parts.oil : 'N/A'}`;
-                    alert(`Activo seleccionado: ${a.nameQR}.\nIngrese su PIN para continuar.`);
                     switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
+                    setTimeout(() => {
+                        const pinInput = document.getElementById('pinInput');
+                        if (pinInput) pinInput.focus();
+                    }, 400);
                 } else {
                     alert('Activo no encontrado.');
                 }
@@ -835,7 +840,30 @@
         }
 
         // =========================================================
-        //  ESCANEO QR
+        //  AUTO-SELECCIÓN POR QR ESCANEADO (URL ?asset=GEN-XXXXX)
+        // =========================================================
+        function autoSelectAssetFromQR(id) {
+            getAssets(assets => {
+                const a = assets.find(x => x.id === id);
+                if (!a) {
+                    alert('⚠️ Activo no encontrado en este dispositivo.\n\nID escaneado: ' + id +
+                          '\n\nPosibles causas:\n- Aún no se sincronizó desde la nube.\n- Pertenece a otra empresa (tenant).\n- El QR es de otro sistema.');
+                    return;
+                }
+                currentAssetId = a.id;
+                document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
+                document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts ? a.parts.oil : 'N/A'}`;
+                switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
+
+                setTimeout(() => {
+                    const pinInput = document.getElementById('pinInput');
+                    if (pinInput) pinInput.focus();
+                }, 400);
+            });
+        }
+
+        // =========================================================
+        //  ESCANEO QR INTERNO (CÁMARA)
         // =========================================================
         function initQrScanner() {
             if (!html5QrCode) {
@@ -847,7 +875,16 @@
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText) => {
-                    selectAsset(decodedText.trim());
+                    // El QR ahora contiene una URL completa: extraemos el ?asset=...
+                    let assetId = decodedText.trim();
+                    try {
+                        const url = new URL(assetId);
+                        const p = url.searchParams.get('asset');
+                        if (p) assetId = p;
+                    } catch (e) {
+                        // Si no es URL, asumimos que es el ID plano (compatibilidad con QR viejos)
+                    }
+                    selectAsset(assetId);
                     stopQrScanner();
                 },
                 () => {}
@@ -902,14 +939,13 @@
         }
 
         // =========================================================
-        //  PDF (CON FOTOS, CORREGIDO)
+        //  PDF (CON FOTOS)
         // =========================================================
         function generatePDF(s) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const pageW = doc.internal.pageSize.getWidth();
 
-            // Encabezado
             doc.setFillColor(11, 15, 23);
             doc.rect(0, 0, pageW, 25, "F");
             doc.setTextColor(132, 204, 22);
@@ -945,7 +981,6 @@
             doc.line(14, y, pageW - 14, y);
             y += 8;
 
-            // Parámetros clave
             doc.setFont("helvetica", "bold");
             doc.setFontSize(10);
             doc.text("PARÁMETROS CLAVE", 14, y);
@@ -958,7 +993,6 @@
             doc.text(`• Batería: ${s.details.batVolt || 'N/A'} | Bornes: ${s.details.batState || 'OK'}`, 14, y); y += 5;
             doc.text(`• Fugas: Gas (${s.details.leakGas || 'OK'}) | Aceite (${s.details.leakOil || 'OK'}) | Combustible (${s.details.leakFuel || 'OK'})`, 14, y); y += 8;
 
-            // Tabla motor en marcha
             doc.setFont("helvetica", "bold");
             doc.text("CONTROLES CON MOTOR EN MARCHA", 14, y);
             y += 6;
@@ -973,7 +1007,6 @@
             const cols = ['Tiempo', 'VCC Bat.', 'Temp °C', 'VCA Gen', 'Carga A', 'Hz'];
             const colW = (pageW - 28) / cols.length;
 
-            // Header de tabla
             doc.setFillColor(240, 240, 240);
             doc.rect(14, y - 4, pageW - 28, 6, 'F');
             doc.setFont("helvetica", "bold");
@@ -990,7 +1023,6 @@
 
             y += 6;
 
-            // Observaciones
             doc.setFont("helvetica", "bold");
             doc.setFontSize(10);
             doc.text("OBSERVACIONES", 14, y);
@@ -1001,7 +1033,6 @@
             doc.text(obs, 14, y);
             y += obs.length * 5 + 6;
 
-            // Fotos
             if (s.photos && (s.photos.p1 || s.photos.p2 || s.photos.p3)) {
                 if (y > 200) { doc.addPage(); y = 20; }
                 doc.setFont("helvetica", "bold");
@@ -1027,7 +1058,6 @@
                 y += imgH + 12;
             }
 
-            // Firma
             if (y > 250) { doc.addPage(); y = 20; }
             doc.setDrawColor(120, 120, 120);
             doc.line(14, y + 15, 90, y + 15);
@@ -1039,7 +1069,6 @@
             doc.save(`Reporte_Mantenimiento_${s.id}.pdf`);
         }
 
-        // Descarga desde historial (sin JSON inline roto)
         function downloadServicePDF(id) {
             const s = servicesCache.find(x => x.id === id);
             if (!s) { alert('Servicio no encontrado en caché.'); return; }
@@ -1124,7 +1153,6 @@
                     }
                 };
 
-                // Intento guardar (puede fallar si el storage se llenó por fotos)
                 try {
                     const services = JSON.parse(localStorage.getItem(servicesKey()) || '[]');
                     services.push(newService);
@@ -1211,6 +1239,19 @@
             if (fechaInput) fechaInput.valueAsDate = new Date();
             loadAssetsList(true);
             updateKPIs();
+
+            // Detectar si viene de un QR escaneado (?asset=GEN-XXXXX)
+            const params = new URLSearchParams(window.location.search);
+            const assetParam = params.get('asset');
+            if (assetParam) {
+                setTimeout(() => {
+                    autoSelectAssetFromQR(assetParam);
+                    // Limpia la URL sin recargar
+                    try {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    } catch (e) { /* noop */ }
+                }, 900);
+            }
         };
     </script>
 </body>
