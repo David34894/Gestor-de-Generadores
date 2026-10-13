@@ -462,9 +462,6 @@
     </main>
 
     <script>
-        // =========================================================
-        //  TOAST VISIBLE (en vez de solo alert)
-        // =========================================================
         function toast(msg, type) {
             const t = document.createElement('div');
             t.className = 'status-toast' + (type === 'error' ? ' error' : type === 'warning' ? ' warning' : '');
@@ -476,7 +473,6 @@
 
         window.addEventListener('error', (e) => {
             console.error('Error global:', e.error || e.message);
-            toast('❌ Error JS: ' + (e.message || 'desconocido'), 'error');
         });
 
         const ADMIN_TENANT_PIN = "8898";
@@ -524,9 +520,6 @@
         let lastServicesHash = '';
         let servicesCache = [];
 
-        // =========================================================
-        //  DIAGNÓSTICO VISIBLE
-        // =========================================================
         function runDiagnostics() {
             const el = id => document.getElementById(id);
             el('diagJsPDF').innerHTML = (window.jspdf && window.jspdf.jsPDF)
@@ -541,7 +534,6 @@
             el('diagTenant').innerHTML = '<span class="diag-ok">' + TENANT + '</span>';
         }
 
-        // Prueba: generar un PDF vacío de prueba
         function testGeneratePDF() {
             try {
                 if (!window.jspdf || !window.jspdf.jsPDF) {
@@ -564,9 +556,6 @@
             }
         }
 
-        // =========================================================
-        //  FIREBASE
-        // =========================================================
         function testFirebaseConnection() {
             const statusEl = document.getElementById('syncStatus');
             const indicator = document.getElementById('syncIndicator');
@@ -640,9 +629,6 @@
             });
         }
 
-        // =========================================================
-        //  NAVEGACIÓN
-        // =========================================================
         function toggleMobileMenu() { document.getElementById('navMenu').classList.toggle('open'); }
 
         function switchView(viewId, el) {
@@ -685,9 +671,6 @@
             switchView('view-dashboard', document.querySelectorAll('.nav-item')[0]);
         }
 
-        // =========================================================
-        //  DATOS
-        // =========================================================
         function getAssets(callback, tenantOverride) {
             const t = tenantOverride || TENANT;
             const localAssets = JSON.parse(localStorage.getItem(assetsKey(t)) || '[]');
@@ -721,9 +704,6 @@
             }
         }
 
-        // =========================================================
-        //  GUARDAR ACTIVO
-        // =========================================================
         function saveAsset(e) {
             e.preventDefault();
             const id = 'GEN-' + Date.now().toString().slice(-5);
@@ -753,7 +733,7 @@
                 document.getElementById('assetForm').reset();
                 switchView('view-assets', document.querySelectorAll('.nav-item')[1]);
                 loadAssetsList(true); updateKPIs();
-                setTimeout(() => alert(`✅ "${newAsset.nameQR}" registrado.\n🆔 ${id}\n🏢 ${TENANT}\n${synced ? '☁️ Sincronizado.' : '⚠️ Solo LOCAL.'}`), 250);
+                setTimeout(() => toast(`✅ "${newAsset.nameQR}" registrado.<br>🆔 ${id}<br>🏢 ${TENANT}<br>${synced ? '☁️ Sincronizado.' : '⚠️ Solo LOCAL.'}`), 250);
             };
 
             if (useFirebase && db) {
@@ -807,8 +787,9 @@
                                 <div class="qr-label">📱 ${a.nameQR}</div>
                             </div>
                         </div>
-                        <div style="display:flex; gap:8px;">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
                             <button class="btn-act" style="flex:1; padding:10px; font-size:0.75rem;" onclick="selectAsset('${a.id}')">Simular QR</button>
+                            <button class="btn-secondary" style="padding:10px; font-size:0.75rem;" onclick="downloadQRPDF('${a.id}')">📄 QR PDF</button>
                             <button class="btn-danger" onclick="deleteAsset('${a.id}')">Eliminar</button>
                         </div>
                     `;
@@ -906,9 +887,6 @@
             } else alert('PIN Incorrecto.');
         }
 
-        // =========================================================
-        //  UTILIDADES
-        // =========================================================
         function fileToCompressedDataURL(file, maxWidth = 700, quality = 0.7) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -938,8 +916,161 @@
         }
 
         // =========================================================
-        //  PDF
+        //  DESCARGAR QR EN PDF (LISTO PARA IMPRIMIR Y PEGAR)
         // =========================================================
+        function downloadQRPDF(assetId) {
+            try {
+                if (!window.jspdf || !window.jspdf.jsPDF) {
+                    toast('❌ jsPDF no cargó. Recargá con Ctrl+F5.', 'error');
+                    return;
+                }
+                if (typeof QRCode === 'undefined') {
+                    toast('❌ Generador QR no disponible.', 'error');
+                    return;
+                }
+
+                const assets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
+                const a = assets.find(x => x.id === assetId);
+                if (!a) { toast('Activo no encontrado.', 'error'); return; }
+
+                // Generar QR en canvas temporal de alta resolución
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                document.body.appendChild(tempDiv);
+
+                new QRCode(tempDiv, {
+                    text: window.location.origin + window.location.pathname + '?asset=' + encodeURIComponent(a.id) + '&tenant=' + encodeURIComponent(TENANT),
+                    width: 500,
+                    height: 500,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                setTimeout(() => {
+                    try {
+                        const canvas = tempDiv.querySelector('canvas');
+                        if (!canvas) {
+                            toast('❌ No se pudo generar el QR.', 'error');
+                            if (tempDiv.parentNode) document.body.removeChild(tempDiv);
+                            return;
+                        }
+                        const qrDataURL = canvas.toDataURL('image/png');
+
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF('p', 'mm', 'a4');
+                        const pageW = doc.internal.pageSize.getWidth();
+                        const pageH = doc.internal.pageSize.getHeight();
+
+                        // Encabezado
+                        doc.setFillColor(11, 15, 23);
+                        doc.rect(0, 0, pageW, 28, 'F');
+                        doc.setTextColor(132, 204, 22);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(18);
+                        doc.text('POWERCORE', 20, 15);
+                        doc.setFontSize(10);
+                        doc.setTextColor(200, 200, 200);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text('Identificacion de Equipo - Escanee para Mantenimiento', 20, 22);
+
+                        // Nombre del generador
+                        doc.setTextColor(30, 30, 30);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(22);
+                        const nombre = a.nameQR || 'Generador';
+                        const nombreLines = doc.splitTextToSize(nombre, pageW - 40);
+                        let yPos = 50;
+                        doc.text(nombreLines, pageW / 2, yPos, { align: 'center' });
+                        yPos += nombreLines.length * 10;
+
+                        // Cliente / Sitio
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(12);
+                        doc.setTextColor(80, 80, 80);
+                        doc.text((a.client || '') + ' — ' + (a.site || ''), pageW / 2, yPos, { align: 'center' });
+                        yPos += 12;
+
+                        // QR centrado
+                        const qrSize = 110;
+                        const qrX = (pageW - qrSize) / 2;
+                        doc.addImage(qrDataURL, 'PNG', qrX, yPos, qrSize, qrSize);
+                        yPos += qrSize + 10;
+
+                        // ID
+                        doc.setFont('courier', 'bold');
+                        doc.setFontSize(14);
+                        doc.setTextColor(30, 30, 30);
+                        doc.text('ID: ' + a.id, pageW / 2, yPos, { align: 'center' });
+                        yPos += 10;
+
+                        // Línea
+                        doc.setDrawColor(200, 200, 200);
+                        doc.line(20, yPos, pageW - 20, yPos);
+                        yPos += 8;
+
+                        // Datos del equipo
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(10);
+                        doc.setTextColor(60, 60, 60);
+                        const leftX = 25;
+                        const rightX = pageW / 2 + 5;
+
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('Equipo:', leftX, yPos);
+                        doc.text('Motor:', rightX, yPos);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(a.generator || 'N/A', leftX, yPos + 6, { maxWidth: pageW / 2 - 30 });
+                        doc.text(a.motor || 'N/A', rightX, yPos + 6, { maxWidth: pageW / 2 - 30 });
+                        yPos += 16;
+
+                        // Pañol
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(132, 204, 22);
+                        doc.text('PAÑOL DE REPUESTOS', 25, yPos);
+                        yPos += 7;
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(60, 60, 60);
+                        doc.setFontSize(9);
+                        doc.text('• Filtro Aceite: ' + (a.parts ? a.parts.oil : 'Sin asignar'), 28, yPos); yPos += 5;
+                        doc.text('• Filtro Combustible: ' + (a.parts ? a.parts.fuel : 'Sin asignar'), 28, yPos); yPos += 5;
+                        doc.text('• Filtro Aire: ' + (a.parts ? a.parts.air : 'Sin asignar'), 28, yPos); yPos += 8;
+
+                        // Instrucciones
+                        doc.setFillColor(245, 245, 245);
+                        doc.rect(20, yPos, pageW - 40, 22, 'F');
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(10);
+                        doc.setTextColor(30, 30, 30);
+                        doc.text('INSTRUCCIONES', 25, yPos + 6);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(9);
+                        doc.text('1. Escanee el QR con la camara del celular.', 25, yPos + 12);
+                        doc.text('2. Ingrese el PIN corporativo y realice el mantenimiento.', 25, yPos + 17);
+
+                        // Footer
+                        doc.setFontSize(8);
+                        doc.setTextColor(150, 150, 150);
+                        doc.text('Generado por POWERCORE HMI — ' + TENANT + ' — ' + new Date().toLocaleDateString('es-AR'), pageW / 2, pageH - 10, { align: 'center' });
+
+                        const fname = 'QR_' + (a.nameQR || 'generador').replace(/[^a-z0-9]/gi, '_') + '_' + a.id + '.pdf';
+                        doc.save(fname);
+                        toast('✅ QR PDF descargado: ' + fname);
+
+                        if (tempDiv.parentNode) document.body.removeChild(tempDiv);
+                    } catch (err) {
+                        console.error('Error generando QR PDF:', err);
+                        toast('❌ Error: ' + err.message, 'error');
+                        if (tempDiv.parentNode) document.body.removeChild(tempDiv);
+                    }
+                }, 350);
+            } catch (err) {
+                console.error('Error descargando QR PDF:', err);
+                toast('❌ Error: ' + err.message, 'error');
+            }
+        }
+
         function generatePDF(s) {
             try {
                 if (!window.jspdf || !window.jspdf.jsPDF) {
@@ -1127,9 +1258,6 @@
             generatePDF(s);
         }
 
-        // =========================================================
-        //  GUARDAR SERVICIO — CON DIAGNÓSTICO PASO A PASO
-        // =========================================================
         async function submitService(e) {
             e.preventDefault();
             console.log('=== INICIO submitService ===');
@@ -1139,7 +1267,6 @@
             btn.innerText = 'Procesando...'; btn.disabled = true;
 
             try {
-                // Validación manual (sin required HTML)
                 const fecha = val('servFecha');
                 const tecnico = val('techName');
 
@@ -1158,7 +1285,6 @@
 
                 console.log('Validación OK. Fecha:', fecha, 'Técnico:', tecnico);
 
-                // Fotos
                 const f1 = document.getElementById('f1').files[0];
                 const f2 = document.getElementById('f2').files[0];
                 const f3 = document.getElementById('f3').files[0];
@@ -1175,7 +1301,6 @@
                 const duration = serviceStartTime ? Math.round((new Date() - serviceStartTime) / 60000) : 15;
                 const sId = 'SRV-' + Date.now().toString().slice(-5);
 
-                // Obtener activo actual
                 const assets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
                 const a = assets.find(x => x.id === currentAssetId);
 
@@ -1222,7 +1347,6 @@
 
                 console.log('Servicio construido:', sId, newService.assetName);
 
-                // Guardar local
                 let localSaveOk = false;
                 try {
                     const services = JSON.parse(localStorage.getItem(servicesKey()) || '[]');
@@ -1237,12 +1361,10 @@
 
                 lastServicesHash = '';
 
-                // Generar PDF (independiente del guardado en Firebase)
                 console.log('Generando PDF...');
                 const pdfOk = generatePDF(newService);
                 console.log('PDF resultado:', pdfOk);
 
-                // Guardar en Firebase (no bloquea el PDF)
                 let synced = false;
                 if (useFirebase && db) {
                     try {
@@ -1254,14 +1376,12 @@
                     }
                 }
 
-                // Mostrar resultado
                 if (pdfOk) {
                     toast(`✅ Servicio guardado y PDF descargado.<br><b>${sId}</b><br>🔧 ${newService.assetName}<br>${localSaveOk ? '💾 Local OK' : ''} ${synced ? '☁️ Nube OK' : ''}`);
                 } else {
                     toast(`⚠️ Servicio guardado pero PDF falló.<br>Probá Ctrl+F5 y volvé a intentar.`, 'warning');
                 }
 
-                // Reset y navegación
                 document.getElementById('fullServiceForm').reset();
                 const fechaInput = document.getElementById('servFecha');
                 if (fechaInput) fechaInput.valueAsDate = new Date();
@@ -1279,9 +1399,6 @@
             }
         }
 
-        // =========================================================
-        //  KPIs + HISTORIAL
-        // =========================================================
         function updateKPIs() {
             getAssets(assets => {
                 getServices(services => {
@@ -1365,9 +1482,6 @@
             });
         }
 
-        // =========================================================
-        //  EMPRESAS
-        // =========================================================
         function getAllLocalTenants() {
             const tenants = new Set();
             for (let i = 0; i < localStorage.length; i++) {
@@ -1454,9 +1568,6 @@
             }
         }
 
-        // =========================================================
-        //  INIT
-        // =========================================================
         window.onload = function() {
             const fechaInput = document.getElementById('servFecha');
             if (fechaInput) fechaInput.valueAsDate = new Date();
