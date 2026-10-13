@@ -81,6 +81,8 @@
             color: #fff; background: rgba(132, 204, 22, 0.12);
             border-color: var(--primary); box-shadow: 0 0 15px rgba(132, 204, 22, 0.15);
         }
+        .nav-item.nav-locked { opacity: 0.55; }
+        .nav-item.nav-locked:hover { opacity: 0.85; }
 
         .bottom-panel { display: flex; flex-direction: column; gap: 10px; }
 
@@ -186,6 +188,18 @@
             display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
         }
 
+        .tenant-manager-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 14px; margin-bottom: 8px; background: var(--bg-card);
+            border: 1px solid var(--border); border-radius: 8px;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .tenant-manager-item.active-tenant { border-color: var(--primary); background: rgba(132,204,22,0.06); }
+        .tenant-manager-info { flex: 1; min-width: 200px; }
+        .tenant-manager-name { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff; font-size: 0.95rem; }
+        .tenant-manager-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+        .tenant-manager-actions { display: flex; gap: 8px; }
+
         @media (max-width: 768px) {
             body { flex-direction: column; }
             .sidebar { width: 100%; height: auto; position: relative; padding: 12px 16px; border-right: none; border-bottom: 1px solid var(--border); overflow: visible; }
@@ -216,6 +230,7 @@
                 <div class="nav-item" onclick="switchView('view-pin', this)">📱 <span>Escaneo QR / PIN</span></div>
                 <div class="nav-item" onclick="switchView('view-protocol', this)">📋 <span>Protocolo Campo</span></div>
                 <div class="nav-item" onclick="switchView('view-history', this)">📜 <span>Bitácora</span></div>
+                <div class="nav-item nav-locked" onclick="requestTenantAccess(this)">🏢 <span>Empresas</span> 🔒</div>
             </nav>
         </div>
         <div class="bottom-panel">
@@ -226,7 +241,7 @@
                 </div>
             </div>
             <div class="tenant-status">
-                <div>EMPRESA ACTIVA (TENANT)</div>
+                <div style="color:var(--text-muted); font-weight:700;">EMPRESA ACTIVA</div>
                 <div class="tenant-active" id="tenantDisplay">default</div>
                 <input type="text" id="tenantInput" placeholder="Código de empresa">
                 <button class="btn-secondary" onclick="changeTenant()">Cambiar Empresa</button>
@@ -280,7 +295,7 @@
                             ✔ Sincronización híbrida Local + Firebase activa.
                         </div>
                         <div style="background:rgba(132,204,22,0.08); border:1px solid rgba(132,204,22,0.25); padding:10px 12px; border-radius:6px; font-size:0.8rem; color:var(--primary);">
-                            🔒 Aislamiento por empresa: <span id="dashboardTenant">default</span>
+                            🔒 Empresa activa: <span id="dashboardTenant">default</span>
                         </div>
                     </div>
                 </div>
@@ -550,9 +565,29 @@
                 </div>
             </fieldset>
         </section>
+
+        <section id="view-tenants" class="view">
+            <fieldset>
+                <legend>Gestión de Empresas (Panel Privado)</legend>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">
+                    Estas son todas las empresas creadas hasta ahora. Podés eliminar las que estén mal escritas o ya no uses.
+                    Los datos se borran de este navegador y también de Firebase.
+                </p>
+                <button class="btn-secondary" onclick="renderTenantManager()" style="margin-bottom:14px;">🔄 Refrescar lista</button>
+                <button class="btn-danger" onclick="lockTenantPanel()" style="margin-bottom:14px; margin-left:8px;">🔒 Bloquear Panel</button>
+                <div id="tenantManagerList">
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Cargando...</p>
+                </div>
+            </fieldset>
+        </section>
     </main>
 
     <script>
+        // =========================================================
+        //  CLAVE MAESTRA DEL PANEL DE EMPRESAS (SOLO ADMIN)
+        // =========================================================
+        const ADMIN_TENANT_PIN = "8898";
+
         // =========================================================
         //  SISTEMA MULTI-TENANT (AISLAMIENTO POR EMPRESA)
         // =========================================================
@@ -562,8 +597,8 @@
             localStorage.setItem('pc_tenant_id', TENANT);
         }
 
-        function assetsKey()   { return `genset_assets_${TENANT}`; }
-        function servicesKey() { return `genset_services_${TENANT}`; }
+        function assetsKey(t)   { return `genset_assets_${t || TENANT}`; }
+        function servicesKey(t) { return `genset_services_${t || TENANT}`; }
 
         function changeTenant() {
             const input = document.getElementById('tenantInput');
@@ -638,6 +673,7 @@
             if (viewId === 'view-dashboard') updateKPIs();
             if (viewId === 'view-history') renderHistory();
             if (viewId === 'view-assets') loadAssetsList(true);
+            if (viewId === 'view-tenants') renderTenantManager();
         }
 
         function switchStep(stepId, tabEl) {
@@ -648,18 +684,47 @@
         }
 
         // =========================================================
+        //  PROTECCIÓN DEL PANEL DE EMPRESAS
+        // =========================================================
+        function isTenantPanelUnlocked() {
+            return sessionStorage.getItem('pc_tenant_panel_unlocked') === 'yes';
+        }
+
+        function requestTenantAccess(el) {
+            if (isTenantPanelUnlocked()) {
+                switchView('view-tenants', el);
+                return;
+            }
+            const code = prompt('🔒 Este panel es privado.\n\nIngresá el código de administrador:');
+            if (code === null) return; // Canceló
+            if (code === ADMIN_TENANT_PIN) {
+                sessionStorage.setItem('pc_tenant_panel_unlocked', 'yes');
+                switchView('view-tenants', el);
+            } else {
+                alert('❌ Código incorrecto. Acceso denegado.');
+            }
+        }
+
+        function lockTenantPanel() {
+            sessionStorage.removeItem('pc_tenant_panel_unlocked');
+            alert('🔒 Panel bloqueado. Se pedirá el código nuevamente.');
+            switchView('view-dashboard', document.querySelectorAll('.nav-item')[0]);
+        }
+
+        // =========================================================
         //  CAPA DE DATOS HÍBRIDA (LOCAL + FIREBASE) POR TENANT
         // =========================================================
-        function getAssets(callback) {
-            const localAssets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
+        function getAssets(callback, tenantOverride) {
+            const t = tenantOverride || TENANT;
+            const localAssets = JSON.parse(localStorage.getItem(assetsKey(t)) || '[]');
             callback(localAssets);
 
             if (useFirebase && db) {
-                db.ref(`tenants/${TENANT}/assets`).once('value', snapshot => {
+                db.ref(`tenants/${t}/assets`).once('value', snapshot => {
                     const data = snapshot.val();
                     if (data) {
                         const list = Object.keys(data).map(k => data[k]);
-                        localStorage.setItem(assetsKey(), JSON.stringify(list));
+                        localStorage.setItem(assetsKey(t), JSON.stringify(list));
                         callback(list);
                     }
                 }).catch(() => console.log("Usando caché local de activos"));
@@ -683,7 +748,7 @@
         }
 
         // =========================================================
-        //  GUARDAR ACTIVO + CREAR QR CON URL
+        //  GUARDAR ACTIVO + CREAR QR CON URL (INCLUYE TENANT)
         // =========================================================
         function saveAsset(e) {
             e.preventDefault();
@@ -719,7 +784,7 @@
                 loadAssetsList(true);
                 updateKPIs();
                 setTimeout(() => {
-                    alert(`✅ Generador "${newAsset.nameQR}" registrado.\n🆔 ID: ${id}\n📱 QR creado con URL de acceso directo.`);
+                    alert(`✅ Generador "${newAsset.nameQR}" registrado.\n🆔 ID: ${id}\n📱 QR creado con URL de acceso directo.\n🏢 Empresa: ${TENANT}`);
                 }, 250);
             };
 
@@ -747,7 +812,7 @@
         }
 
         // =========================================================
-        //  RENDER DE ACTIVOS + QR CON URL (?asset=GEN-XXXXX)
+        //  RENDER DE ACTIVOS + QR
         // =========================================================
         function loadAssetsList(force = false) {
             getAssets(assets => {
@@ -761,7 +826,7 @@
                 container.innerHTML = '';
 
                 if (assets.length === 0) {
-                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay generadores cargados.</p>';
+                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay generadores cargados en esta empresa.</p>';
                     return;
                 }
 
@@ -801,9 +866,8 @@
                     const qrBox = div.querySelector(`[data-qr-id="${a.id}"]`);
                     if (qrBox) {
                         try {
-                            // URL que abre la app con el generador precargado
                             const baseUrl = window.location.origin + window.location.pathname;
-                            const qrUrl = baseUrl + '?asset=' + encodeURIComponent(a.id);
+                            const qrUrl = baseUrl + '?asset=' + encodeURIComponent(a.id) + '&tenant=' + encodeURIComponent(TENANT);
                             new QRCode(qrBox, {
                                 text: qrUrl,
                                 width: 90,
@@ -826,13 +890,7 @@
                 const a = assets.find(x => x.id === id || x.id.includes(id));
                 if (a) {
                     currentAssetId = a.id;
-                    document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
-                    document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts ? a.parts.oil : 'N/A'}`;
-                    switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
-                    setTimeout(() => {
-                        const pinInput = document.getElementById('pinInput');
-                        if (pinInput) pinInput.focus();
-                    }, 400);
+                    applySelectedAsset(a);
                 } else {
                     alert('Activo no encontrado.');
                 }
@@ -840,26 +898,61 @@
         }
 
         // =========================================================
-        //  AUTO-SELECCIÓN POR QR ESCANEADO (URL ?asset=GEN-XXXXX)
+        //  AUTO-SELECCIÓN POR QR
         // =========================================================
         function autoSelectAssetFromQR(id) {
             getAssets(assets => {
                 const a = assets.find(x => x.id === id);
-                if (!a) {
-                    alert('⚠️ Activo no encontrado en este dispositivo.\n\nID escaneado: ' + id +
-                          '\n\nPosibles causas:\n- Aún no se sincronizó desde la nube.\n- Pertenece a otra empresa (tenant).\n- El QR es de otro sistema.');
+                if (a) {
+                    applySelectedAsset(a);
                     return;
                 }
-                currentAssetId = a.id;
-                document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
-                document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts ? a.parts.oil : 'N/A'}`;
-                switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
 
-                setTimeout(() => {
-                    const pinInput = document.getElementById('pinInput');
-                    if (pinInput) pinInput.focus();
-                }, 400);
+                if (useFirebase && db) {
+                    db.ref('tenants').once('value').then(snapshot => {
+                        const tenants = snapshot.val() || {};
+                        let foundTenant = null;
+                        let foundAsset = null;
+
+                        Object.keys(tenants).forEach(t => {
+                            if (tenants[t] && tenants[t].assets) {
+                                Object.keys(tenants[t].assets).forEach(k => {
+                                    if (k === id) {
+                                        foundTenant = t;
+                                        foundAsset = tenants[t].assets[k];
+                                    }
+                                });
+                            }
+                        });
+
+                        if (foundTenant && foundAsset) {
+                            const msg = `El activo "${foundAsset.nameQR}" pertenece a la empresa "${foundTenant}".\n\n¿Desea cambiar a esa empresa ahora?`;
+                            if (confirm(msg)) {
+                                localStorage.setItem('pc_tenant_id', foundTenant);
+                                location.reload();
+                            }
+                        } else {
+                            alert('⚠️ Activo no encontrado.\n\nID escaneado: ' + id +
+                                  '\n\nPosibles causas:\n- El QR fue creado con una versión vieja (sin URL).\n- El activo fue eliminado.\n- El QR es de otro sistema.');
+                        }
+                    }).catch(() => {
+                        alert('⚠️ Activo no encontrado en este dispositivo.\n\nID escaneado: ' + id);
+                    });
+                } else {
+                    alert('⚠️ Activo no encontrado en este dispositivo.\n\nID escaneado: ' + id);
+                }
             });
+        }
+
+        function applySelectedAsset(a) {
+            currentAssetId = a.id;
+            document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
+            document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts ? a.parts.oil : 'N/A'}`;
+            switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
+            setTimeout(() => {
+                const pinInput = document.getElementById('pinInput');
+                if (pinInput) pinInput.focus();
+            }, 400);
         }
 
         // =========================================================
@@ -875,15 +968,26 @@
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText) => {
-                    // El QR ahora contiene una URL completa: extraemos el ?asset=...
                     let assetId = decodedText.trim();
+                    let tenantFromQR = null;
                     try {
                         const url = new URL(assetId);
                         const p = url.searchParams.get('asset');
+                        const t = url.searchParams.get('tenant');
                         if (p) assetId = p;
+                        if (t) tenantFromQR = t;
                     } catch (e) {
-                        // Si no es URL, asumimos que es el ID plano (compatibilidad con QR viejos)
+                        // QR viejo (solo ID plano)
                     }
+
+                    if (tenantFromQR && tenantFromQR !== TENANT) {
+                        if (confirm(`Este QR pertenece a la empresa "${tenantFromQR}".\n¿Cambiar a esa empresa ahora?`)) {
+                            localStorage.setItem('pc_tenant_id', tenantFromQR);
+                            location.href = window.location.pathname + '?asset=' + encodeURIComponent(assetId);
+                            return;
+                        }
+                    }
+
                     selectAsset(assetId);
                     stopQrScanner();
                 },
@@ -1232,6 +1336,114 @@
         }
 
         // =========================================================
+        //  GESTIÓN DE EMPRESAS (SOLO ADMIN)
+        // =========================================================
+        function getAllLocalTenants() {
+            const tenants = new Set();
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                let m = key.match(/^genset_assets_(.+)$/);
+                if (m) tenants.add(m[1]);
+                m = key.match(/^genset_services_(.+)$/);
+                if (m) tenants.add(m[1]);
+            }
+            tenants.add(TENANT);
+            return Array.from(tenants).sort();
+        }
+
+        function renderTenantManager() {
+            // Doble chequeo: si no está desbloqueado, no muestra nada
+            if (!isTenantPanelUnlocked()) {
+                const container = document.getElementById('tenantManagerList');
+                container.innerHTML = '<p style="color:var(--danger); font-size:0.85rem;">🔒 Panel bloqueado.</p>';
+                return;
+            }
+
+            const container = document.getElementById('tenantManagerList');
+            container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">Cargando desde Firebase...</p>';
+
+            const localTenants = getAllLocalTenants();
+
+            const finalize = (firebaseTenants) => {
+                const all = Array.from(new Set([...localTenants, ...firebaseTenants])).sort();
+                container.innerHTML = '';
+
+                if (all.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay empresas creadas todavía.</p>';
+                    return;
+                }
+
+                all.forEach(t => {
+                    const localAssets = JSON.parse(localStorage.getItem(`genset_assets_${t}`) || '[]');
+                    const localServices = JSON.parse(localStorage.getItem(`genset_services_${t}`) || '[]');
+                    const isActive = t === TENANT;
+
+                    const div = document.createElement('div');
+                    div.className = 'tenant-manager-item' + (isActive ? ' active-tenant' : '');
+                    div.innerHTML = `
+                        <div class="tenant-manager-info">
+                            <div class="tenant-manager-name">${t} ${isActive ? '✅ (activa)' : ''}</div>
+                            <div class="tenant-manager-meta">
+                                ${localAssets.length} generadores · ${localServices.length} servicios registrados localmente
+                            </div>
+                        </div>
+                        <div class="tenant-manager-actions">
+                            ${!isActive ? `<button class="btn-secondary" data-switch="${t}" style="font-size:0.7rem; padding:6px 10px;">Cambiar</button>` : ''}
+                            ${!isActive ? `<button class="btn-danger" data-delete="${t}" style="font-size:0.7rem; padding:6px 10px;">Eliminar</button>` : ''}
+                        </div>
+                    `;
+                    container.appendChild(div);
+
+                    const switchBtn = div.querySelector('[data-switch]');
+                    if (switchBtn) {
+                        switchBtn.addEventListener('click', () => {
+                            localStorage.setItem('pc_tenant_id', t);
+                            location.reload();
+                        });
+                    }
+
+                    const delBtn = div.querySelector('[data-delete]');
+                    if (delBtn) {
+                        delBtn.addEventListener('click', () => deleteTenant(t));
+                    }
+                });
+            };
+
+            if (useFirebase && db) {
+                db.ref('tenants').once('value').then(snapshot => {
+                    const data = snapshot.val() || {};
+                    finalize(Object.keys(data));
+                }).catch(() => finalize([]));
+            } else {
+                finalize([]);
+            }
+        }
+
+        function deleteTenant(t) {
+            if (t === TENANT) { alert('No podés eliminar la empresa activa.'); return; }
+            if (!confirm(`¿Eliminar por completo la empresa "${t}"?\n\nSe borrarán TODOS sus generadores y servicios de este navegador y de Firebase.\n\nEsta acción NO se puede deshacer.`)) return;
+
+            localStorage.removeItem(`genset_assets_${t}`);
+            localStorage.removeItem(`genset_services_${t}`);
+
+            if (useFirebase && db) {
+                db.ref(`tenants/${t}`).remove()
+                    .then(() => {
+                        alert(`Empresa "${t}" eliminada.`);
+                        renderTenantManager();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Se borró localmente, pero falló en Firebase. Revisá la consola.');
+                        renderTenantManager();
+                    });
+            } else {
+                alert(`Empresa "${t}" eliminada (solo local).`);
+                renderTenantManager();
+            }
+        }
+
+        // =========================================================
         //  INIT
         // =========================================================
         window.onload = function() {
@@ -1240,13 +1452,21 @@
             loadAssetsList(true);
             updateKPIs();
 
-            // Detectar si viene de un QR escaneado (?asset=GEN-XXXXX)
             const params = new URLSearchParams(window.location.search);
             const assetParam = params.get('asset');
+            const tenantParam = params.get('tenant');
+
+            if (tenantParam && tenantParam !== TENANT) {
+                if (confirm(`Este QR pertenece a la empresa "${tenantParam}".\n¿Cambiar a esa empresa ahora?`)) {
+                    localStorage.setItem('pc_tenant_id', tenantParam);
+                    location.href = window.location.pathname + (assetParam ? '?asset=' + encodeURIComponent(assetParam) : '');
+                    return;
+                }
+            }
+
             if (assetParam) {
                 setTimeout(() => {
                     autoSelectAssetFromQR(assetParam);
-                    // Limpia la URL sin recargar
                     try {
                         window.history.replaceState({}, document.title, window.location.pathname);
                     } catch (e) { /* noop */ }
