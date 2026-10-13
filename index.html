@@ -5,126 +5,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>POWERCORE™ HMI — Industrial Genset Management SaaS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <style>
         :root {
-            --bg-dark: #07090e;
-            --bg-sidebar: #0b0f17;
-            --bg-card: #111827;
-            --bg-input: #0d121d;
-            --border: #1f293d;
-            --primary: #84cc16;
-            --primary-dark: #4d7c0f;
-            --accent-orange: #f97316;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #22c55e;
+            --bg-dark:#07090e; --bg-sidebar:#0b0f17; --bg-card:#111827; --bg-input:#0d121d;
+            --border:#1f293d; --primary:#84cc16; --primary-dark:#4d7c0f; --accent-orange:#f97316;
+            --text-main:#f8fafc; --text-muted:#94a3b8; --danger:#ef4444; --warning:#f59e0b; --success:#22c55e;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: var(--bg-dark); color: var(--text-main); display: flex; min-height: 100vh; overflow-x: hidden; }
-
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; padding: 20px 14px; position: fixed; height: 100vh; z-index: 100; overflow-y: auto; }
-        .brand-logo { display: flex; align-items: center; justify-content: space-between; font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
-        .brand-logo span { color: var(--primary); font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 10px rgba(132, 204, 22, 0.3); }
-        .mobile-toggle { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
-        .nav-menu { display: flex; flex-direction: column; gap: 6px; margin-top: 20px; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent; }
-        .nav-item:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.03); }
-        .nav-item.active { color: #fff; background: rgba(132, 204, 22, 0.12); border-color: var(--primary); box-shadow: 0 0 15px rgba(132, 204, 22, 0.15); }
-        .nav-item.nav-locked { opacity: 0.55; }
-        .bottom-panel { display: flex; flex-direction: column; gap: 10px; }
-        .system-status, .tenant-status { background: #0d121d; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.75rem; }
-        .tenant-status input { padding: 6px 8px; font-size: 0.75rem; margin-top: 6px; }
-        .tenant-status .btn-secondary { margin-top: 6px; width: 100%; font-size: 0.7rem; padding: 6px; }
-        .tenant-active { color: var(--primary); font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-top: 4px; word-break: break-all; }
-        .status-indicator { display: flex; align-items: center; gap: 8px; color: var(--success); font-weight: 700; margin-top: 4px; }
-        .status-indicator.error { color: var(--danger); }
-        .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success); animation: pulse 1.5s infinite; }
-        .dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
-        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
-        .main-wrapper { margin-left: 260px; flex: 1; padding: 28px 36px; max-width: calc(100% - 260px); width: 100%; }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
-        .page-title h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; }
-        .page-title p { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
-        .view { display: none; }
-        .view.active { display: block; animation: fadeIn 0.25s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
-        .kpi-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-        .kpi-box::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); }
-        .kpi-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-        .kpi-val { font-size: 2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; margin-top: 6px; color: #fff; }
-        .scada-panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-bottom: 28px; }
-        .scada-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-        .scada-card-title { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .gauge-container { display: flex; justify-content: space-around; align-items: center; gap: 15px; text-align: center; margin: 10px 0; }
-        .gauge-circle { width: 85px; height: 85px; border-radius: 50%; border: 6px solid var(--border); border-top-color: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; margin: 0 auto; }
-        .gauge-val { font-size: 1.1rem; font-weight: 800; }
-        .gauge-unit { font-size: 0.65rem; color: var(--text-muted); }
-        .assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
-        .asset-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s; }
-        .asset-card:hover { border-color: var(--primary); box-shadow: 0 8px 25px rgba(0,0,0,0.6); }
-        .asset-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .asset-title { font-size: 1rem; font-weight: 700; color: #fff; }
-        .asset-client { font-size: 0.8rem; color: var(--text-muted); }
-        .badge-iot { font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 700; background: rgba(132, 204, 22, 0.15); color: var(--primary); border: 1px solid rgba(132, 204, 22, 0.3); }
-        .qr-box { display: inline-block; background: #fff; padding: 6px; border-radius: 4px; }
-        .qr-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
-        .step-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .step-tab { background: var(--bg-card); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); cursor: pointer; white-space: nowrap; text-transform: uppercase; flex-shrink: 0; }
-        .step-tab.active { background: var(--primary-dark); color: #fff; border-color: var(--primary); }
-        fieldset { border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; background: rgba(17, 24, 39, 0.6); }
-        legend { color: var(--primary); font-weight: 700; font-size: 0.85rem; padding: 2px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px 14px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(132, 204, 22, 0.2); }
-        button.btn-act { background: var(--primary); color: #07090e; border: none; padding: 14px 20px; font-weight: 800; border-radius: 8px; cursor: pointer; text-transform: uppercase; font-size: 0.85rem; }
-        button.btn-act:hover { background: #a3e635; }
-        button.btn-secondary { background: #3b82f6; color: #fff; border: none; padding: 10px 14px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
-        button.btn-danger { background: var(--danger); color: #fff; border: none; padding: 8px 12px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
-        button.btn-success { background: var(--success); color: #fff; border: none; padding: 10px 14px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
-        .table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; min-width: 500px; }
-        th, td { padding: 10px; text-align: center; font-size: 0.85rem; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
-        th { background: var(--bg-sidebar); color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
-        .checkbox-group { display: flex; align-items: center; gap: 8px; background: var(--bg-input); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
-        .checkbox-group input { width: 18px; height: 18px; accent-color: var(--primary); }
-        .history-item { background: var(--bg-card); padding: 14px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        .tenant-manager-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; margin-bottom: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; flex-wrap: wrap; gap: 10px; }
-        .tenant-manager-item.active-tenant { border-color: var(--primary); background: rgba(132,204,22,0.06); }
-        .tenant-manager-info { flex: 1; min-width: 200px; }
-        .tenant-manager-name { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff; font-size: 0.95rem; }
-        .tenant-manager-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
-        .tenant-manager-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .diag-box { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; font-size: 0.8rem; }
-        .diag-line { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); }
-        .diag-line:last-child { border-bottom: none; }
-        .diag-ok { color: var(--success); font-weight: 700; }
-        .diag-bad { color: var(--danger); font-weight: 700; }
-        .diag-warn { color: var(--warning); font-weight: 700; }
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; position: relative; padding: 12px 16px; border-right: none; border-bottom: 1px solid var(--border); overflow: visible; }
-            .mobile-toggle { display: block; }
-            .nav-menu { display: none; flex-direction: column; width: 100%; margin-top: 10px; gap: 6px; }
-            .nav-menu.open { display: flex; }
-            .bottom-panel { margin-top: 10px; }
-            .main-wrapper { margin-left: 0; max-width: 100%; padding: 16px; }
-            .grid-2, .grid-3, .grid-4, .assets-grid, .scada-panel-grid, .kpi-grid { grid-template-columns: 1fr !important; gap: 12px; }
-            .btn-act { width: 100%; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:'Inter',system-ui,sans-serif; background:var(--bg-dark); color:var(--text-main); display:flex; min-height:100vh; overflow-x:hidden; }
+        .sidebar { width:260px; background:var(--bg-sidebar); border-right:1px solid var(--border); display:flex; flex-direction:column; justify-content:space-between; padding:20px 14px; position:fixed; height:100vh; z-index:100; overflow-y:auto; }
+        .brand-logo { display:flex; align-items:center; justify-content:space-between; font-size:1.15rem; font-weight:800; padding-bottom:20px; border-bottom:1px solid var(--border); }
+        .brand-logo span { color:var(--primary); font-family:'JetBrains Mono',monospace; }
+        .mobile-toggle { display:none; background:none; border:none; color:#fff; font-size:1.5rem; cursor:pointer; }
+        .nav-menu { display:flex; flex-direction:column; gap:6px; margin-top:20px; }
+        .nav-item { display:flex; align-items:center; gap:12px; padding:12px 14px; color:var(--text-muted); font-weight:600; font-size:0.85rem; border-radius:8px; cursor:pointer; transition:all 0.2s; border:1px solid transparent; }
+        .nav-item:hover { color:var(--text-main); background:rgba(255,255,255,0.03); }
+        .nav-item.active { color:#fff; background:rgba(132,204,22,0.12); border-color:var(--primary); }
+        .nav-item.nav-locked { opacity:0.55; }
+        .bottom-panel { display:flex; flex-direction:column; gap:10px; }
+        .system-status,.tenant-status { background:#0d121d; border:1px solid var(--border); border-radius:8px; padding:12px; font-size:0.75rem; }
+        .tenant-status input { padding:6px 8px; font-size:0.75rem; margin-top:6px; }
+        .tenant-status .btn-secondary { margin-top:6px; width:100%; font-size:0.7rem; padding:6px; }
+        .tenant-active { color:var(--primary); font-weight:700; font-family:'JetBrains Mono',monospace; margin-top:4px; word-break:break-all; }
+        .status-indicator { display:flex; align-items:center; gap:8px; color:var(--success); font-weight:700; margin-top:4px; }
+        .status-indicator.error { color:var(--danger); }
+        .dot { width:8px; height:8px; background:var(--success); border-radius:50%; box-shadow:0 0 8px var(--success); animation:pulse 1.5s infinite; }
+        .dot.error { background:var(--danger); box-shadow:0 0 8px var(--danger); }
+        @keyframes pulse { 0%{opacity:1;transform:scale(1);} 50%{opacity:0.4;transform:scale(0.8);} 100%{opacity:1;transform:scale(1);} }
+        .main-wrapper { margin-left:260px; flex:1; padding:28px 36px; max-width:calc(100% - 260px); width:100%; }
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; padding-bottom:16px; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:12px; }
+        .page-title h1 { font-size:1.5rem; font-weight:800; }
+        .page-title p { font-size:0.85rem; color:var(--text-muted); margin-top:2px; }
+        .view { display:none; }
+        .view.active { display:block; animation:fadeIn 0.25s ease-out; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(4px);} to{opacity:1;transform:translateY(0);} }
+        .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:28px; }
+        .kpi-box { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:20px; position:relative; overflow:hidden; }
+        .kpi-box::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--primary); }
+        .kpi-label { font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; }
+        .kpi-val { font-size:2rem; font-weight:800; font-family:'JetBrains Mono',monospace; margin-top:6px; color:#fff; }
+        .scada-panel-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin-bottom:28px; }
+        .scada-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:20px; }
+        .scada-card-title { font-size:0.85rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:14px; display:flex; justify-content:space-between; }
+        .gauge-container { display:flex; justify-content:space-around; gap:15px; text-align:center; }
+        .gauge-circle { width:85px; height:85px; border-radius:50%; border:6px solid var(--border); border-top-color:var(--primary); display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; margin:0 auto; }
+        .gauge-val { font-size:1.1rem; font-weight:800; }
+        .gauge-unit { font-size:0.65rem; color:var(--text-muted); }
+        .assets-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+        .asset-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; }
+        .asset-card:hover { border-color:var(--primary); }
+        .asset-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+        .asset-title { font-size:1rem; font-weight:700; color:#fff; }
+        .asset-client { font-size:0.8rem; color:var(--text-muted); }
+        .badge-iot { font-size:0.7rem; padding:3px 8px; border-radius:20px; font-weight:700; background:rgba(132,204,22,0.15); color:var(--primary); border:1px solid rgba(132,204,22,0.3); }
+        .qr-box { display:inline-block; background:#fff; padding:6px; border-radius:4px; }
+        .qr-label { font-size:0.7rem; color:var(--text-muted); margin-top:6px; font-family:'JetBrains Mono',monospace; }
+        .step-tabs { display:flex; gap:8px; margin-bottom:20px; overflow-x:auto; border-bottom:1px solid var(--border); padding-bottom:10px; }
+        .step-tab { background:var(--bg-card); border:1px solid var(--border); padding:10px 16px; border-radius:8px; font-size:0.8rem; font-weight:700; color:var(--text-muted); cursor:pointer; white-space:nowrap; text-transform:uppercase; flex-shrink:0; }
+        .step-tab.active { background:var(--primary-dark); color:#fff; border-color:var(--primary); }
+        fieldset { border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; background:rgba(17,24,39,0.6); }
+        legend { color:var(--primary); font-weight:700; font-size:0.85rem; padding:2px 10px; background:var(--bg-card); border:1px solid var(--border); border-radius:4px; text-transform:uppercase; }
+        .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+        .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+        .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+        .form-group { margin-bottom:12px; }
+        label { display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:6px; font-weight:700; text-transform:uppercase; }
+        input,select,textarea { width:100%; padding:12px 14px; background:var(--bg-input); border:1px solid var(--border); color:var(--text-main); border-radius:8px; font-size:0.9rem; font-family:inherit; }
+        input:focus,select:focus,textarea:focus { border-color:var(--primary); outline:none; }
+        button.btn-act { background:var(--primary); color:#07090e; border:none; padding:14px 20px; font-weight:800; border-radius:8px; cursor:pointer; text-transform:uppercase; font-size:0.85rem; }
+        button.btn-act:hover { background:#a3e635; }
+        button.btn-secondary { background:#3b82f6; color:#fff; border:none; padding:10px 14px; font-weight:700; border-radius:6px; cursor:pointer; font-size:0.8rem; }
+        button.btn-danger { background:var(--danger); color:#fff; border:none; padding:8px 12px; font-weight:700; border-radius:6px; cursor:pointer; font-size:0.75rem; }
+        button.btn-success { background:var(--success); color:#fff; border:none; padding:10px 14px; font-weight:700; border-radius:6px; cursor:pointer; font-size:0.8rem; }
+        .table-responsive { width:100%; overflow-x:auto; margin-top:10px; border-radius:8px; border:1px solid var(--border); }
+        table { width:100%; border-collapse:collapse; min-width:500px; }
+        th,td { padding:10px; text-align:center; font-size:0.85rem; border-bottom:1px solid var(--border); border-right:1px solid var(--border); }
+        th { background:var(--bg-sidebar); color:var(--primary); font-weight:700; text-transform:uppercase; font-size:0.75rem; }
+        .checkbox-group { display:flex; align-items:center; gap:8px; background:var(--bg-input); padding:12px; border-radius:8px; border:1px solid var(--border); }
+        .checkbox-group input { width:18px; height:18px; accent-color:var(--primary); }
+        .gen-group { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; margin-bottom:14px; overflow:hidden; }
+        .gen-group-header { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; background:rgba(132,204,22,0.06); border-bottom:1px solid var(--border); cursor:pointer; }
+        .gen-group-title { font-weight:800; color:#fff; font-size:1rem; display:flex; align-items:center; gap:10px; }
+        .gen-group-count { background:var(--primary); color:#07090e; font-size:0.7rem; padding:3px 10px; border-radius:12px; font-weight:800; }
+        .gen-group-body { padding:10px; }
+        .srv-item { background:rgba(0,0,0,0.25); padding:12px 14px; margin-bottom:8px; border-radius:8px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; font-size:0.85rem; }
+        .srv-item:last-child { margin-bottom:0; }
+        .srv-item:hover { border-color:var(--primary); }
+        .tenant-manager-item { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; margin-bottom:8px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; flex-wrap:wrap; gap:10px; }
+        .tenant-manager-item.active-tenant { border-color:var(--primary); background:rgba(132,204,22,0.06); }
+        .tenant-manager-info { flex:1; min-width:200px; }
+        .tenant-manager-name { font-family:'JetBrains Mono',monospace; font-weight:700; color:#fff; }
+        .tenant-manager-meta { font-size:0.75rem; color:var(--text-muted); margin-top:4px; }
+        .tenant-manager-actions { display:flex; gap:8px; flex-wrap:wrap; }
+        .diag-box { background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:14px; font-size:0.8rem; }
+        .diag-line { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed rgba(255,255,255,0.06); }
+        .diag-line:last-child { border-bottom:none; }
+        .diag-ok { color:var(--success); font-weight:700; }
+        .diag-bad { color:var(--danger); font-weight:700; }
+        @media (max-width:768px) {
+            body { flex-direction:column; }
+            .sidebar { width:100%; height:auto; position:relative; padding:12px 16px; border-right:none; border-bottom:1px solid var(--border); overflow:visible; }
+            .mobile-toggle { display:block; }
+            .nav-menu { display:none; flex-direction:column; width:100%; margin-top:10px; }
+            .nav-menu.open { display:flex; }
+            .bottom-panel { margin-top:10px; }
+            .main-wrapper { margin-left:0; max-width:100%; padding:16px; }
+            .grid-2,.grid-3,.grid-4,.assets-grid,.scada-panel-grid,.kpi-grid { grid-template-columns:1fr !important; }
+            .btn-act { width:100%; }
         }
     </style>
 </head>
@@ -167,110 +160,87 @@
                 <h1 id="topTitle">Centro de Supervisión HMI</h1>
                 <p id="topSub">Control industrial en tiempo real y protocolos de campo</p>
             </div>
-            <button class="btn-act" style="width: auto;" onclick="switchView('view-assets', document.querySelectorAll('.nav-item')[1])">+ Nuevo Generador</button>
+            <button class="btn-act" style="width:auto;" onclick="switchView('view-assets', document.querySelectorAll('.nav-item')[1])">+ Nuevo Generador</button>
         </header>
 
         <section id="view-dashboard" class="view active">
             <div class="kpi-grid">
-                <div class="kpi-box">
-                    <div class="kpi-label">Generadores Registrados</div>
-                    <div class="kpi-val" id="kpiTotalAssets">0</div>
-                </div>
-                <div class="kpi-box" style="border-left-color: #3b82f6;">
-                    <div class="kpi-label">Servicios Completados</div>
-                    <div class="kpi-val" id="kpiTotalServices">0</div>
-                </div>
-                <div class="kpi-box" style="border-left-color: var(--warning);">
-                    <div class="kpi-label">Alertas de Horómetro</div>
-                    <div class="kpi-val" id="kpiAlerts">0</div>
-                </div>
+                <div class="kpi-box"><div class="kpi-label">Generadores Registrados</div><div class="kpi-val" id="kpiTotalAssets">0</div></div>
+                <div class="kpi-box" style="border-left-color:#3b82f6;"><div class="kpi-label">Servicios Completados</div><div class="kpi-val" id="kpiTotalServices">0</div></div>
+                <div class="kpi-box" style="border-left-color:var(--warning);"><div class="kpi-label">Alertas de Horómetro</div><div class="kpi-val" id="kpiAlerts">0</div></div>
             </div>
-
             <div class="scada-panel-grid">
                 <div class="scada-card">
-                    <div class="scada-card-title">Telemetría Promedio Flota <span>Status: RUNNING</span></div>
+                    <div class="scada-card-title">Telemetría Promedio Flota <span>RUNNING</span></div>
                     <div class="gauge-container">
-                        <div>
-                            <div class="gauge-circle"><span class="gauge-val">1500</span><span class="gauge-unit">RPM</span></div>
-                            <div style="font-size:0.75rem; margin-top:6px; color:var(--text-muted);">Velocidad Motor</div>
-                        </div>
-                        <div>
-                            <div class="gauge-circle" style="border-top-color: var(--accent-orange);"><span class="gauge-val">5.8</span><span class="gauge-unit">BAR</span></div>
-                            <div style="font-size:0.75rem; margin-top:6px; color:var(--text-muted);">Presión Aceite</div>
-                        </div>
+                        <div><div class="gauge-circle"><span class="gauge-val">1500</span><span class="gauge-unit">RPM</span></div><div style="font-size:0.75rem; margin-top:6px; color:var(--text-muted);">Velocidad</div></div>
+                        <div><div class="gauge-circle" style="border-top-color:var(--accent-orange);"><span class="gauge-val">5.8</span><span class="gauge-unit">BAR</span></div><div style="font-size:0.75rem; margin-top:6px; color:var(--text-muted);">Presión Aceite</div></div>
                     </div>
                 </div>
                 <div class="scada-card">
-                    <div class="scada-card-title">Estado de Sincronización <span>Cloud Realtime</span></div>
-                    <div id="firebaseDiagBox" class="diag-box">
-                        <div class="diag-line"><span>Cargando diagnóstico...</span></div>
-                    </div>
-                    <button class="btn-secondary" style="width:100%; margin-bottom:8px;" onclick="testFirebaseConnection()">🔄 Probar conexión Firebase</button>
-                    <button class="btn-success" style="width:100%;" onclick="syncAllLocalToFirebase(true)">☁️ Subir TODOS los datos locales a la nube</button>
+                    <div class="scada-card-title">Estado de Sincronización <span>Cloud</span></div>
+                    <div id="firebaseDiagBox" class="diag-box"><div class="diag-line"><span>Cargando...</span></div></div>
+                    <button class="btn-secondary" style="width:100%; margin-bottom:8px;" onclick="testFirebaseConnection()">🔄 Probar Firebase</button>
+                    <button class="btn-success" style="width:100%;" onclick="syncAllLocalToFirebase(true)">☁️ Subir datos locales a la nube</button>
                 </div>
             </div>
         </section>
 
         <section id="view-assets" class="view">
             <fieldset>
-                <legend>Alta de Nuevo Generador y Pañol Específico</legend>
+                <legend>Alta de Nuevo Generador</legend>
                 <form id="assetForm" onsubmit="saveAsset(event)">
                     <div class="grid-3">
                         <div class="form-group"><label>Cliente</label><input type="text" id="assetClient" required placeholder="Ej. SUPARA CATARATAS"></div>
                         <div class="form-group"><label>Sitio / Ubicación</label><input type="text" id="assetSite" required placeholder="Ej. Planta Principal"></div>
-                        <div class="form-group"><label>Código Interno / ID</label><input type="text" id="assetCode" placeholder="Ej. GG-EE-01"></div>
+                        <div class="form-group"><label>Código Interno</label><input type="text" id="assetCode" placeholder="Ej. GG-EE-01"></div>
                     </div>
                     <div class="grid-3">
                         <div class="form-group"><label>Equipo (Marca / Modelo / kVA)</label><input type="text" id="assetEq" placeholder="CETEC / CD-440 / 440 KVA"></div>
-                        <div class="form-group"><label>Motor (Marca / Modelo / Serie)</label><input type="text" id="assetMot" placeholder="DOOSAN / P-158-LE"></div>
-                        <div class="form-group"><label>Generador (Marca / Modelo / Serie)</label><input type="text" id="assetGen" placeholder="CRAMACO / G2R315SA"></div>
+                        <div class="form-group"><label>Motor</label><input type="text" id="assetMot" placeholder="DOOSAN / P-158-LE"></div>
+                        <div class="form-group"><label>Generador</label><input type="text" id="assetGen" placeholder="CRAMACO / G2R315SA"></div>
                     </div>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Telemetría IoT</label>
                             <select id="assetIoT">
-                                <option value="Sin IoT (Oportunidad Kit)">Sin Módulo IoT (Disponible Venta Kit)</option>
-                                <option value="IoT Activo (Monitoreo Online)">IoT Activo (Monitoreo Online)</option>
+                                <option value="Sin IoT (Oportunidad Kit)">Sin Módulo IoT</option>
+                                <option value="IoT Activo (Monitoreo Online)">IoT Activo</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Nombre Comercial QR</label>
-                            <input type="text" id="assetNameQR" placeholder="Ej. Generador Principal Planta Alta" required>
-                        </div>
+                        <div class="form-group"><label>Nombre Comercial QR</label><input type="text" id="assetNameQR" placeholder="Generador Principal" required></div>
                     </div>
-                    <div style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 12px;">
-                        <label style="color:var(--primary); margin-bottom:8px;">Repuestos Asignados a este Equipo (Pañol Específico)</label>
+                    <div style="margin-top:15px; border-top:1px solid var(--border); padding-top:12px;">
+                        <label style="color:var(--primary); margin-bottom:8px;">Repuestos Asignados (Pañol)</label>
                         <div class="grid-3">
-                            <div class="form-group"><label>Filtro Aceite Ref.</label><input type="text" id="partOil" placeholder="Ej. FLEETGUARD LF3716"></div>
-                            <div class="form-group"><label>Filtro Combustible Ref.</label><input type="text" id="partFuel" placeholder="Ej. FLEETGUARD FS-1212"></div>
-                            <div class="form-group"><label>Filtro Aire Ref.</label><input type="text" id="partAir" placeholder="Ej. FAMEL FR-1488"></div>
+                            <div class="form-group"><label>Filtro Aceite</label><input type="text" id="partOil" placeholder="FLEETGUARD LF3716"></div>
+                            <div class="form-group"><label>Filtro Combustible</label><input type="text" id="partFuel" placeholder="FLEETGUARD FS-1212"></div>
+                            <div class="form-group"><label>Filtro Aire</label><input type="text" id="partAir" placeholder="FAMEL FR-1488"></div>
                         </div>
                     </div>
-                    <button type="submit" class="btn-act" style="margin-top: 12px;">Registrar Activo y Crear QR</button>
+                    <button type="submit" class="btn-act" style="margin-top:12px;">Registrar Activo y Crear QR</button>
                 </form>
             </fieldset>
-
-            <h2 style="margin-top: 24px; margin-bottom: 14px;">Expediente Digital de Flota (Asset 360)</h2>
+            <h2 style="margin-top:24px; margin-bottom:14px;">Expediente Digital de Flota</h2>
             <div class="assets-grid" id="assetsList"></div>
         </section>
 
         <section id="view-pin" class="view">
-            <div style="max-width: 600px; margin: 0 auto;">
-                <fieldset style="text-align: center; margin-bottom: 20px;">
-                    <legend>Cámara de Escaneo QR (Celular / PC)</legend>
-                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Apunta la cámara al código QR del generador para seleccionarlo automáticamente.</p>
-                    <div id="reader" style="width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);"></div>
+            <div style="max-width:600px; margin:0 auto;">
+                <fieldset style="text-align:center; margin-bottom:20px;">
+                    <legend>Cámara de Escaneo QR</legend>
+                    <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:15px;">Apunta al código QR del generador.</p>
+                    <div id="reader" style="width:100%; border-radius:8px; overflow:hidden; border:1px solid var(--border);"></div>
                 </fieldset>
-
-                <fieldset style="text-align: center;">
-                    <legend>Identificación de Activo Seleccionado</legend>
-                    <h3 id="qrDisplayName" style="font-size: 1.2rem; color: #fff; margin-bottom: 6px;">Ningún activo seleccionado</h3>
-                    <p id="qrDisplayModel" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Escanee el QR con la cámara o seleccione un equipo desde la lista de activos.</p>
-                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
-                        <label style="margin-bottom: 8px;">PIN Corporativo de Técnico</label>
-                        <input type="password" id="pinInput" placeholder="••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; width: 100%; max-width: 200px; margin: 0 auto;">
+                <fieldset style="text-align:center;">
+                    <legend>Activo Seleccionado</legend>
+                    <h3 id="qrDisplayName" style="font-size:1.2rem; color:#fff; margin-bottom:6px;">Ningún activo seleccionado</h3>
+                    <p id="qrDisplayModel" style="color:var(--text-muted); font-size:0.85rem; margin-bottom:20px;">Escanee el QR o seleccione un equipo.</p>
+                    <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; border:1px solid var(--border); margin-bottom:20px;">
+                        <label style="margin-bottom:8px;">PIN Corporativo</label>
+                        <input type="password" id="pinInput" placeholder="••••" style="text-align:center; font-size:1.4rem; letter-spacing:6px; max-width:200px; margin:0 auto;">
                     </div>
-                    <button type="button" class="btn-act" style="width: 100%;" onclick="validatePin()">Validar PIN e Iniciar Protocolo</button>
+                    <button type="button" class="btn-act" style="width:100%;" onclick="validatePin()">Validar PIN e Iniciar Protocolo</button>
                 </fieldset>
             </div>
         </section>
@@ -292,10 +262,10 @@
                         <div class="grid-4">
                             <div class="form-group"><label>Fecha</label><input type="date" id="servFecha" required></div>
                             <div class="form-group"><label>Ensayos / ID</label><input type="text" id="servEnsayos" value="GG-EE"></div>
-                            <div class="form-group"><label>Horas Último Service</label><input type="text" id="servUltimoHs" placeholder="Ej. 1111,3 Hs"></div>
+                            <div class="form-group"><label>Horas Último Service</label><input type="text" id="servUltimoHs"></div>
                             <div class="form-group"><label>Fecha Último Service</label><input type="date" id="servUltimaFecha"></div>
                         </div>
-                        <div class="grid-2" style="margin-top: 10px;">
+                        <div class="grid-2" style="margin-top:10px;">
                             <div class="checkbox-group"><input type="checkbox" id="typePrev" checked><label for="typePrev">Preventivo</label></div>
                             <div class="checkbox-group"><input type="checkbox" id="typeMensual" checked><label for="typeMensual">Mensual</label></div>
                             <div class="checkbox-group"><input type="checkbox" id="typeAnual"><label for="typeAnual">Anual</label></div>
@@ -303,11 +273,11 @@
                         </div>
                     </fieldset>
                     <fieldset>
-                        <legend>2. Interruptor General y Control TTA (Transferencia)</legend>
+                        <legend>2. Interruptor General y TTA</legend>
                         <div class="grid-3">
                             <div class="form-group"><label>Interruptor Marca / Modelo</label><input type="text" id="intMarca" placeholder="SIEMENS OEZ"></div>
                             <div class="form-group"><label>Potencia (A)</label><input type="text" id="intPot" placeholder="630 A"></div>
-                            <div class="form-group"><label>Estado Visual / Torque Potencia</label><input type="text" id="intTorque" placeholder="OK / Verificado"></div>
+                            <div class="form-group"><label>Estado / Torque Potencia</label><input type="text" id="intTorque" placeholder="OK / Verificado"></div>
                         </div>
                         <div class="grid-3">
                             <div class="form-group"><label>TTA Marca / Modelo</label><input type="text" id="ttaMarca" placeholder="ABB OTM800E3CM230C"></div>
@@ -329,7 +299,7 @@
 
                 <div id="step-2" class="step-content" style="display:none;">
                     <fieldset>
-                        <legend>3. Control de Tensión y Frecuencia (En Vacío)</legend>
+                        <legend>3. Tensión y Frecuencia (Vacío)</legend>
                         <div class="grid-3">
                             <div class="form-group"><label>Tensión R-S (V)</label><input type="text" id="vRS" placeholder="408"></div>
                             <div class="form-group"><label>Tensión S-T (V)</label><input type="text" id="vST" placeholder="405"></div>
@@ -348,23 +318,23 @@
                     <fieldset>
                         <legend>4. Insumos, Aceite, Filtros y Baterías</legend>
                         <div class="grid-3">
-                            <div class="form-group"><label>Presión de Aceite (BAR / PSI)</label><input type="text" id="oilPres" placeholder="5.9 BAR"></div>
+                            <div class="form-group"><label>Presión Aceite</label><input type="text" id="oilPres" placeholder="5.9 BAR"></div>
                             <div class="form-group"><label>Marca y Tipo Aceite</label><input type="text" id="oilType" placeholder="SAE25-W50"></div>
-                            <div class="form-group"><label>Litros / Nivel Aceite</label><input type="text" id="oilLevel" placeholder="32 Litros / OK"></div>
+                            <div class="form-group"><label>Litros / Nivel Aceite</label><input type="text" id="oilLevel" placeholder="32 L / OK"></div>
                         </div>
                         <div class="grid-3">
                             <div class="form-group"><label>Filtro Aceite Primario</label><input type="text" id="oilFilt1" placeholder="FLEETGUARD LF3716"></div>
                             <div class="form-group"><label>Filtro Aceite Secundario</label><input type="text" id="oilFilt2"></div>
-                            <div class="form-group"><label>Consumo Estimado Aceite</label><input type="text" id="oilCons"></div>
+                            <div class="form-group"><label>Consumo Estimado</label><input type="text" id="oilCons"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Filtros Aire (Prim. / Sec.)</label><input type="text" id="airFilt" placeholder="FAMEL FR-1488"></div>
-                            <div class="form-group"><label>Filtro Combustible Primario</label><input type="text" id="fuelFilt" placeholder="FLEETGUARD FS-1212"></div>
-                            <div class="form-group"><label>Nivel Tanque Combustible (%)</label><input type="text" id="fuelTank" placeholder="20%"></div>
+                            <div class="form-group"><label>Filtros Aire</label><input type="text" id="airFilt" placeholder="FAMEL FR-1488"></div>
+                            <div class="form-group"><label>Filtro Combustible</label><input type="text" id="fuelFilt" placeholder="FLEETGUARD FS-1212"></div>
+                            <div class="form-group"><label>Nivel Tanque (%)</label><input type="text" id="fuelTank" placeholder="20%"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Tensión Batería OFF / ON</label><input type="text" id="batVolt" placeholder="24,3V / 28,4V"></div>
-                            <div class="form-group"><label>Cargador Baterías OFF / ON</label><input type="text" id="chargVolt" placeholder="26,3V / 26,3V"></div>
+                            <div class="form-group"><label>Tensión Batería OFF/ON</label><input type="text" id="batVolt" placeholder="24,3V / 28,4V"></div>
+                            <div class="form-group"><label>Cargador Baterías OFF/ON</label><input type="text" id="chargVolt" placeholder="26,3V / 26,3V"></div>
                             <div class="form-group"><label>Estado Bornes / Cantidad</label><input type="text" id="batState" placeholder="CADEN / 2 Baterías"></div>
                         </div>
                     </fieldset>
@@ -375,35 +345,23 @@
                         <legend>5. Controles con Motor en Marcha</legend>
                         <div class="table-responsive">
                             <table>
-                                <thead>
-                                    <tr>
-                                        <th>Tiempos</th>
-                                        <th>VCC Bat.</th>
-                                        <th>Temp (°C)</th>
-                                        <th>VCA Gen (L1-L2-L3)</th>
-                                        <th>Carga A Gen</th>
-                                        <th>Hz Gen</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th>Tiempos</th><th>VCC Bat.</th><th>Temp (°C)</th><th>VCA Gen</th><th>Carga A</th><th>Hz</th></tr></thead>
                                 <tbody>
-                                    <tr>
-                                        <td>Minuto 0</td>
+                                    <tr><td>Minuto 0</td>
                                         <td><input type="text" id="m0_bat" placeholder="28.4"></td>
                                         <td><input type="text" id="m0_temp" placeholder="42"></td>
                                         <td><input type="text" id="m0_vca" placeholder="236 237 236"></td>
                                         <td><input type="text" id="m0_amp" placeholder="134 86 104"></td>
                                         <td><input type="text" id="m0_hz" placeholder="50.0"></td>
                                     </tr>
-                                    <tr>
-                                        <td>Minuto 5</td>
+                                    <tr><td>Minuto 5</td>
                                         <td><input type="text" id="m5_bat" placeholder="28.4"></td>
                                         <td><input type="text" id="m5_temp" placeholder="54"></td>
                                         <td><input type="text" id="m5_vca" placeholder="236 235 235"></td>
                                         <td><input type="text" id="m5_amp" placeholder="119 130 125"></td>
                                         <td><input type="text" id="m5_hz" placeholder="50.0"></td>
                                     </tr>
-                                    <tr>
-                                        <td>Minuto 10</td>
+                                    <tr><td>Minuto 10</td>
                                         <td><input type="text" id="m10_bat" placeholder="28.4"></td>
                                         <td><input type="text" id="m10_temp" placeholder="60"></td>
                                         <td><input type="text" id="m10_vca" placeholder="236 235 235"></td>
@@ -413,13 +371,13 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="form-group" style="margin-top: 10px;"><label>¿Ruidos Extraños?</label><input type="text" id="noises" placeholder="Sin ruidos extraños"></div>
+                        <div class="form-group" style="margin-top:10px;"><label>¿Ruidos Extraños?</label><input type="text" id="noises" placeholder="Sin ruidos"></div>
                     </fieldset>
                 </div>
 
                 <div id="step-5" class="step-content" style="display:none;">
                     <fieldset>
-                        <legend>6. Control de Fugas, Limpieza e Inspección Visual</legend>
+                        <legend>6. Fugas, Limpieza e Inspección Visual</legend>
                         <div class="grid-3">
                             <div class="form-group"><label>Fugas Gases</label><input type="text" id="leakGas" placeholder="OK"></div>
                             <div class="form-group"><label>Fugas Lubricante</label><input type="text" id="leakOil" placeholder="OK"></div>
@@ -431,76 +389,68 @@
                             <div class="form-group"><label>Estado Correas</label><input type="text" id="beltsState" placeholder="OK"></div>
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Limpieza Exterior Equipo</label><input type="text" id="cleanExt" placeholder="OK"></div>
-                            <div class="form-group"><label>Limpieza Sala de Máquinas</label><input type="text" id="cleanRoom" placeholder="OK"></div>
+                            <div class="form-group"><label>Limpieza Exterior</label><input type="text" id="cleanExt" placeholder="OK"></div>
+                            <div class="form-group"><label>Limpieza Sala Máquinas</label><input type="text" id="cleanRoom" placeholder="OK"></div>
                             <div class="form-group"><label>Turbo Filtro</label><input type="text" id="turboFilt" placeholder="OK"></div>
                         </div>
                         <div class="grid-2">
                             <div class="form-group"><label>Horas de Marcha Actual</label><input type="text" id="inputHorasActual" placeholder="Ej. 1122,2" required></div>
-                            <div class="form-group"><label>Estimado Próximo Service</label><input type="text" id="nextServiceHs" placeholder="Ej. 1372,2 Hs"></div>
+                            <div class="form-group"><label>Próximo Service</label><input type="text" id="nextServiceHs" placeholder="Ej. 1372,2 Hs"></div>
                         </div>
                     </fieldset>
                 </div>
 
                 <div id="step-6" class="step-content" style="display:none;">
                     <fieldset>
-                        <legend>7. Observaciones y Fotografías de Campo</legend>
-                        <div class="form-group">
-                            <label>Observaciones Generales</label>
-                            <textarea rows="3" id="obsText" placeholder="Detalles o novedades del servicio..."></textarea>
+                        <legend>7. Observaciones y Fotos (OPCIONALES)</legend>
+                        <div class="form-group"><label>Observaciones Generales</label><textarea rows="3" id="obsText" placeholder="Novedades del servicio..."></textarea></div>
+                        <div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); padding:10px; border-radius:6px; margin-bottom:12px; font-size:0.8rem; color:#fbbf24;">
+                            ⚠️ Las fotos son <b>opcionales</b>. Si no las sacás, el PDF igual se genera.
                         </div>
                         <div class="grid-3">
-                            <div class="form-group"><label>Foto 1: Generador (Cámara)</label><input type="file" accept="image/*" capture="environment" id="f1" required></div>
-                            <div class="form-group"><label>Foto 2: Sala Máquinas (Cámara)</label><input type="file" accept="image/*" capture="environment" id="f2" required></div>
-                            <div class="form-group"><label>Foto 3: Interconexión (Cámara)</label><input type="file" accept="image/*" capture="environment" id="f3" required></div>
+                            <div class="form-group"><label>Foto 1: Generador</label><input type="file" accept="image/*" capture="environment" id="f1"></div>
+                            <div class="form-group"><label>Foto 2: Sala Máquinas</label><input type="file" accept="image/*" capture="environment" id="f2"></div>
+                            <div class="form-group"><label>Foto 3: Interconexión</label><input type="file" accept="image/*" capture="environment" id="f3"></div>
                         </div>
-                        <div class="form-group" style="margin-top: 15px;">
-                            <label>Técnico Responsable</label><input type="text" id="techName" placeholder="Nombre, Apellido y Matrícula del Técnico" required>
+                        <div class="form-group" style="margin-top:15px;">
+                            <label>Técnico Responsable</label><input type="text" id="techName" placeholder="Nombre y Matrícula" required>
                         </div>
                     </fieldset>
-                    <button type="submit" class="btn-act" style="width: 100%; padding: 16px;">Finalizar Mantenimiento y Exportar PDF</button>
+                    <button type="submit" class="btn-act" style="width:100%; padding:16px;">Finalizar y Descargar PDF</button>
                 </div>
             </form>
         </section>
 
         <section id="view-history" class="view">
             <fieldset>
-                <legend>Historial Inalterable de Servicios Realizados</legend>
-                <div id="historyList">
-                    <p style="color:var(--text-muted); font-size:0.85rem;">Sin servicios registrados.</p>
-                </div>
+                <legend>Bitácora por Generador</legend>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">
+                    Cada generador tiene su propio historial. Clic en el nombre para ver o descargar sus servicios.
+                </p>
+                <div id="historyList"><p style="color:var(--text-muted); font-size:0.85rem;">Sin servicios registrados.</p></div>
             </fieldset>
         </section>
 
         <section id="view-tenants" class="view">
             <fieldset>
-                <legend>Gestión de Empresas (Panel Privado)</legend>
-                <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:14px;">
-                    Podés ver cuántos datos tiene cada empresa en la nube y subir los locales que falten.
-                </p>
+                <legend>Gestión de Empresas (Privado)</legend>
                 <div class="diag-box">
                     <div class="diag-line"><span>Estado Firebase:</span> <span id="tenantDiagFirebase">Verificando...</span></div>
                     <div class="diag-line"><span>Empresas locales:</span> <span id="tenantDiagLocal">0</span></div>
                     <div class="diag-line"><span>Empresas en nube:</span> <span id="tenantDiagRemote">0</span></div>
                 </div>
-                <button class="btn-secondary" onclick="renderTenantManager()" style="margin-bottom:14px;">🔄 Refrescar lista</button>
-                <button class="btn-success" onclick="syncAllLocalToFirebase(true)" style="margin-bottom:14px; margin-left:8px;">☁️ Subir todo a la nube</button>
-                <button class="btn-danger" onclick="lockTenantPanel()" style="margin-bottom:14px; margin-left:8px;">🔒 Bloquear Panel</button>
-                <div id="tenantManagerList">
-                    <p style="color:var(--text-muted); font-size:0.85rem;">Cargando...</p>
-                </div>
+                <button class="btn-secondary" onclick="renderTenantManager()" style="margin-bottom:14px;">🔄 Refrescar</button>
+                <button class="btn-success" onclick="syncAllLocalToFirebase(true)" style="margin-bottom:14px; margin-left:8px;">☁️ Subir todo</button>
+                <button class="btn-danger" onclick="lockTenantPanel()" style="margin-bottom:14px; margin-left:8px;">🔒 Bloquear</button>
+                <div id="tenantManagerList"></div>
             </fieldset>
         </section>
     </main>
 
     <script>
         const ADMIN_TENANT_PIN = "8898";
-
         let TENANT = localStorage.getItem('pc_tenant_id');
-        if (!TENANT) {
-            TENANT = 'default';
-            localStorage.setItem('pc_tenant_id', TENANT);
-        }
+        if (!TENANT) { TENANT = 'default'; localStorage.setItem('pc_tenant_id', TENANT); }
 
         function assetsKey(t)   { return `genset_assets_${t || TENANT}`; }
         function servicesKey(t) { return `genset_services_${t || TENANT}`; }
@@ -508,9 +458,9 @@
         function changeTenant() {
             const input = document.getElementById('tenantInput');
             const newTenant = (input.value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
-            if (!newTenant) { alert('Ingrese un código de empresa válido.'); return; }
-            if (newTenant === TENANT) { alert('Ya está operando con esa empresa.'); return; }
-            if (!confirm(`¿Cambiar a la empresa "${newTenant}"?`)) return;
+            if (!newTenant) { alert('Ingrese código válido.'); return; }
+            if (newTenant === TENANT) { alert('Ya está en esa empresa.'); return; }
+            if (!confirm(`¿Cambiar a "${newTenant}"?`)) return;
             localStorage.setItem('pc_tenant_id', newTenant);
             location.reload();
         }
@@ -527,12 +477,11 @@
 
         let useFirebase = false;
         let db = null;
-
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
             useFirebase = true;
-        } catch (e) { console.error('Error inicializando Firebase:', e); }
+        } catch (e) { console.error('Firebase error:', e); }
 
         document.getElementById('tenantDisplay').innerText = TENANT;
 
@@ -545,114 +494,77 @@
         let servicesCache = [];
 
         // =========================================================
-        //  FIREBASE: TESTEO Y HELPERS
+        //  FIREBASE HELPERS
         // =========================================================
         function testFirebaseConnection() {
             const statusEl = document.getElementById('syncStatus');
             const indicator = document.getElementById('syncIndicator');
             const dot = document.getElementById('syncDot');
             const diagBox = document.getElementById('firebaseDiagBox');
-
-            diagBox.innerHTML = '<div class="diag-line"><span>Probando conexión...</span></div>';
+            diagBox.innerHTML = '<div class="diag-line"><span>Probando...</span></div>';
 
             if (!useFirebase || !db) {
                 statusEl.innerText = 'Firebase no inicializado';
-                indicator.classList.add('error');
-                dot.classList.add('error');
+                indicator.classList.add('error'); dot.classList.add('error');
                 diagBox.innerHTML = '<div class="diag-line"><span>SDK:</span> <span class="diag-bad">No cargado</span></div>';
                 return Promise.resolve(false);
             }
 
-            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout 7s')), 7000));
-            const readPromise = db.ref('.info/connected').once('value');
-
-            return Promise.race([readPromise, timeout])
-                .then(() => {
-                    statusEl.innerText = `Firebase OK [${TENANT}]`;
-                    indicator.classList.remove('error');
-                    dot.classList.remove('error');
-                    diagBox.innerHTML = `
-                        <div class="diag-line"><span>Conectado:</span> <span class="diag-ok">✔ Sí</span></div>
-                        <div class="diag-line"><span>Empresa:</span> <span class="diag-ok">${TENANT}</span></div>
-                        <div class="diag-line"><span>URL:</span> <span>${firebaseConfig.databaseURL.replace('https://','')}</span></div>
-                    `;
-                    return true;
-                })
-                .catch(err => {
-                    statusEl.innerText = 'Firebase OFFLINE';
-                    indicator.classList.add('error');
-                    dot.classList.add('error');
-                    diagBox.innerHTML = `
-                        <div class="diag-line"><span>Error:</span> <span class="diag-bad">${(err.message || '').substring(0,50)}</span></div>
-                    `;
-                    return false;
-                });
+            return Promise.race([
+                db.ref('.info/connected').once('value'),
+                new Promise((_, r) => setTimeout(() => r(new Error('Timeout 7s')), 7000))
+            ]).then(() => {
+                statusEl.innerText = `Firebase OK [${TENANT}]`;
+                indicator.classList.remove('error'); dot.classList.remove('error');
+                diagBox.innerHTML = `
+                    <div class="diag-line"><span>Conectado:</span> <span class="diag-ok">✔ Sí</span></div>
+                    <div class="diag-line"><span>Empresa:</span> <span class="diag-ok">${TENANT}</span></div>
+                    <div class="diag-line"><span>URL:</span> <span>${firebaseConfig.databaseURL.replace('https://','')}</span></div>
+                `;
+                return true;
+            }).catch(err => {
+                statusEl.innerText = 'Firebase OFFLINE';
+                indicator.classList.add('error'); dot.classList.add('error');
+                diagBox.innerHTML = `<div class="diag-line"><span>Error:</span> <span class="diag-bad">${(err.message||'').substring(0,50)}</span></div>`;
+                return false;
+            });
         }
 
         function firebaseRead(path, timeoutMs = 6000) {
             return new Promise((resolve, reject) => {
                 if (!useFirebase || !db) { reject(new Error('Firebase no disponible')); return; }
                 const timer = setTimeout(() => reject(new Error('Timeout Firebase')), timeoutMs);
-                db.ref(path).once('value')
-                    .then(snap => { clearTimeout(timer); resolve(snap); })
-                    .catch(err => { clearTimeout(timer); reject(err); });
+                db.ref(path).once('value').then(s => { clearTimeout(timer); resolve(s); }).catch(e => { clearTimeout(timer); reject(e); });
             });
         }
 
-        // =========================================================
-        //  SINCRONIZACIÓN MASIVA: LOCAL → FIREBASE
-        //  Sube todos los datos de localStorage que aún no están en la nube.
-        //  No borra nada, no duplica (solo sube lo que no existe).
-        // =========================================================
         function syncAllLocalToFirebase(showAlert = false) {
-            if (!useFirebase || !db) {
-                if (showAlert) alert('Firebase no está disponible.');
-                return Promise.resolve({ uploaded: 0, skipped: 0 });
-            }
-
+            if (!useFirebase || !db) { if (showAlert) alert('Firebase no disponible.'); return Promise.resolve({uploaded:0,skipped:0}); }
             const localTenants = getAllLocalTenants();
-            let uploaded = 0;
-            let skipped = 0;
+            let uploaded = 0, skipped = 0;
             const promises = [];
 
             localTenants.forEach(t => {
                 const localAssets = JSON.parse(localStorage.getItem(`genset_assets_${t}`) || '[]');
                 const localServices = JSON.parse(localStorage.getItem(`genset_services_${t}`) || '[]');
-
-                localAssets.forEach(asset => {
-                    if (!asset || !asset.id) return;
-                    promises.push(
-                        db.ref(`tenants/${t}/assets/${asset.id}`).once('value').then(snap => {
-                            if (!snap.exists()) {
-                                uploaded++;
-                                return db.ref(`tenants/${t}/assets/${asset.id}`).set(asset);
-                            } else {
-                                skipped++;
-                            }
-                        }).catch(err => console.warn('Error subiendo asset:', err))
-                    );
+                localAssets.forEach(a => {
+                    if (!a || !a.id) return;
+                    promises.push(db.ref(`tenants/${t}/assets/${a.id}`).once('value').then(snap => {
+                        if (!snap.exists()) { uploaded++; return db.ref(`tenants/${t}/assets/${a.id}`).set(a); }
+                        skipped++;
+                    }).catch(e => console.warn(e)));
                 });
-
-                localServices.forEach(srv => {
-                    if (!srv || !srv.id) return;
-                    promises.push(
-                        db.ref(`tenants/${t}/services/${srv.id}`).once('value').then(snap => {
-                            if (!snap.exists()) {
-                                uploaded++;
-                                return db.ref(`tenants/${t}/services/${srv.id}`).set(srv);
-                            } else {
-                                skipped++;
-                            }
-                        }).catch(err => console.warn('Error subiendo service:', err))
-                    );
+                localServices.forEach(s => {
+                    if (!s || !s.id) return;
+                    promises.push(db.ref(`tenants/${t}/services/${s.id}`).once('value').then(snap => {
+                        if (!snap.exists()) { uploaded++; return db.ref(`tenants/${t}/services/${s.id}`).set(s); }
+                        skipped++;
+                    }).catch(e => console.warn(e)));
                 });
             });
 
             return Promise.all(promises).then(() => {
-                if (showAlert) {
-                    alert(`☁️ Sincronización completada.\n\n📤 Subidos: ${uploaded}\n⏭ Ya existían: ${skipped}`);
-                }
-                console.log(`Sync: ${uploaded} subidos, ${skipped} ya existentes.`);
+                if (showAlert) alert(`☁️ Sincronización completa.\n📤 Subidos: ${uploaded}\n⏭ Ya existían: ${skipped}`);
                 return { uploaded, skipped };
             });
         }
@@ -688,12 +600,12 @@
 
         function requestTenantAccess(el) {
             if (isTenantPanelUnlocked()) { switchView('view-tenants', el); return; }
-            const code = prompt('🔒 Panel privado. Ingresá el código:');
+            const code = prompt('🔒 Panel privado. Código:');
             if (code === null) return;
             if (code === ADMIN_TENANT_PIN) {
                 sessionStorage.setItem('pc_tenant_panel_unlocked', 'yes');
                 switchView('view-tenants', el);
-            } else { alert('❌ Código incorrecto.'); }
+            } else alert('❌ Código incorrecto.');
         }
 
         function lockTenantPanel() {
@@ -703,14 +615,12 @@
         }
 
         // =========================================================
-        //  CARGA DE DATOS (LOCAL + FIREBASE)
-        //  Firebase SOBREESCRIBE local si hay datos en la nube.
+        //  CAPA DE DATOS
         // =========================================================
         function getAssets(callback, tenantOverride) {
             const t = tenantOverride || TENANT;
             const localAssets = JSON.parse(localStorage.getItem(assetsKey(t)) || '[]');
             callback(localAssets);
-
             if (useFirebase && db) {
                 firebaseRead(`tenants/${t}/assets`)
                     .then(snapshot => {
@@ -720,15 +630,13 @@
                             localStorage.setItem(assetsKey(t), JSON.stringify(list));
                             callback(list);
                         }
-                    })
-                    .catch(err => console.log("Firebase assets fallback local:", err.message));
+                    }).catch(err => console.log("FB assets fallback:", err.message));
             }
         }
 
         function getServices(callback) {
             const localServices = JSON.parse(localStorage.getItem(servicesKey()) || '[]');
             callback(localServices);
-
             if (useFirebase && db) {
                 firebaseRead(`tenants/${TENANT}/services`)
                     .then(snapshot => {
@@ -738,20 +646,18 @@
                             localStorage.setItem(servicesKey(), JSON.stringify(list));
                             callback(list);
                         }
-                    })
-                    .catch(err => console.log("Firebase services fallback local:", err.message));
+                    }).catch(err => console.log("FB services fallback:", err.message));
             }
         }
 
         // =========================================================
-        //  GUARDAR / ELIMINAR
+        //  GUARDAR ACTIVO
         // =========================================================
         function saveAsset(e) {
             e.preventDefault();
             const id = 'GEN-' + Date.now().toString().slice(-5);
             const newAsset = {
-                id: id,
-                tenant: TENANT,
+                id: id, tenant: TENANT,
                 client: document.getElementById('assetClient').value,
                 site: document.getElementById('assetSite').value,
                 code: document.getElementById('assetCode').value,
@@ -767,7 +673,6 @@
                 },
                 createdAt: new Date().toISOString()
             };
-
             const assets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
             assets.push(newAsset);
             localStorage.setItem(assetsKey(), JSON.stringify(assets));
@@ -776,20 +681,13 @@
             const finalize = (synced) => {
                 document.getElementById('assetForm').reset();
                 switchView('view-assets', document.querySelectorAll('.nav-item')[1]);
-                loadAssetsList(true);
-                updateKPIs();
-                setTimeout(() => {
-                    alert(`✅ Generador "${newAsset.nameQR}" registrado.\n🆔 ${id}\n🏢 ${TENANT}\n${synced ? '☁️ Sincronizado con la nube.' : '⚠️ Guardado LOCAL (Firebase no responde).'}`);
-                }, 250);
+                loadAssetsList(true); updateKPIs();
+                setTimeout(() => alert(`✅ "${newAsset.nameQR}" registrado.\n🆔 ${id}\n🏢 ${TENANT}\n${synced ? '☁️ Sincronizado.' : '⚠️ Solo LOCAL.'}`), 250);
             };
 
             if (useFirebase && db) {
-                db.ref(`tenants/${TENANT}/assets/${id}`).set(newAsset)
-                    .then(() => finalize(true))
-                    .catch(err => { console.error("Firebase falló:", err); finalize(false); });
-            } else {
-                finalize(false);
-            }
+                db.ref(`tenants/${TENANT}/assets/${id}`).set(newAsset).then(() => finalize(true)).catch(() => finalize(false));
+            } else finalize(false);
         }
 
         function deleteAsset(id) {
@@ -797,14 +695,13 @@
             let assets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
             assets = assets.filter(a => a.id !== id);
             localStorage.setItem(assetsKey(), JSON.stringify(assets));
-            if (useFirebase && db) db.ref(`tenants/${TENANT}/assets/${id}`).remove().catch(err => console.log(err));
+            if (useFirebase && db) db.ref(`tenants/${TENANT}/assets/${id}`).remove().catch(() => {});
             lastAssetsHash = '';
-            loadAssetsList(true);
-            updateKPIs();
+            loadAssetsList(true); updateKPIs();
         }
 
         // =========================================================
-        //  RENDER DE ACTIVOS
+        //  RENDER ACTIVOS
         // =========================================================
         function loadAssetsList(force = false) {
             getAssets(assets => {
@@ -814,12 +711,10 @@
                 if (!force && hash === lastAssetsHash) return;
                 lastAssetsHash = hash;
                 container.innerHTML = '';
-
                 if (assets.length === 0) {
-                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay generadores cargados en esta empresa.</p>';
+                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay generadores en esta empresa.</p>';
                     return;
                 }
-
                 assets.forEach(a => {
                     const div = document.createElement('div');
                     div.className = 'asset-card';
@@ -832,37 +727,30 @@
                                 </div>
                                 <span class="badge-iot">${a.iot}</span>
                             </div>
-                            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
-                                ID: <strong>${a.id}</strong> | Motor: ${a.motor || 'N/A'}
-                            </p>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">ID: <strong>${a.id}</strong> | Motor: ${a.motor || 'N/A'}</p>
                             <div style="background:rgba(0,0,0,0.2); padding:8px; border-radius:6px; font-size:0.75rem; margin-bottom:12px; border:1px solid var(--border);">
                                 <strong style="color:var(--primary);">Pañol:</strong><br>
                                 🛢 Aceite: ${a.parts ? a.parts.oil : 'Sin asignar'}<br>
                                 ⛽ Combustible: ${a.parts ? a.parts.fuel : 'Sin asignar'}<br>
                                 💨 Aire: ${a.parts ? a.parts.air : 'Sin asignar'}
                             </div>
-                            <div style="margin-bottom: 10px; text-align: center;">
+                            <div style="margin-bottom:10px; text-align:center;">
                                 <div class="qr-box" data-qr-id="${a.id}"></div>
                                 <div class="qr-label">📱 ${a.nameQR}</div>
                             </div>
                         </div>
                         <div style="display:flex; gap:8px;">
-                            <button class="btn-act" style="flex:1; padding: 10px; font-size:0.75rem;" onclick="selectAsset('${a.id}')">Simular QR</button>
+                            <button class="btn-act" style="flex:1; padding:10px; font-size:0.75rem;" onclick="selectAsset('${a.id}')">Simular QR</button>
                             <button class="btn-danger" onclick="deleteAsset('${a.id}')">Eliminar</button>
                         </div>
                     `;
                     container.appendChild(div);
-
                     const qrBox = div.querySelector(`[data-qr-id="${a.id}"]`);
                     if (qrBox) {
                         try {
                             const baseUrl = window.location.origin + window.location.pathname;
                             const qrUrl = baseUrl + '?asset=' + encodeURIComponent(a.id) + '&tenant=' + encodeURIComponent(TENANT);
-                            new QRCode(qrBox, {
-                                text: qrUrl, width: 90, height: 90,
-                                colorDark: "#000000", colorLight: "#ffffff",
-                                correctLevel: QRCode.CorrectLevel.M
-                            });
+                            new QRCode(qrBox, { text: qrUrl, width: 90, height: 90, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
                         } catch (err) { qrBox.innerHTML = `<span style="color:#000; font-size:10px;">QR: ${a.id}</span>`; }
                     }
                 });
@@ -893,15 +781,13 @@
                             }
                         });
                         if (foundTenant && foundAsset) {
-                            if (confirm(`El activo "${foundAsset.nameQR}" pertenece a la empresa "${foundTenant}".\n¿Cambiar?`)) {
+                            if (confirm(`El activo "${foundAsset.nameQR}" es de "${foundTenant}".\n¿Cambiar?`)) {
                                 localStorage.setItem('pc_tenant_id', foundTenant);
                                 location.reload();
                             }
-                        } else {
-                            alert('⚠️ Activo no encontrado.\n\nID: ' + id);
-                        }
-                    }).catch(err => alert('⚠️ Activo no encontrado y Firebase no responde: ' + err.message));
-                } else alert('⚠️ Activo no encontrado localmente.\n\nID: ' + id);
+                        } else alert('⚠️ Activo no encontrado.\nID: ' + id);
+                    }).catch(err => alert('⚠️ Activo no encontrado. Firebase: ' + err.message));
+                } else alert('⚠️ Activo no encontrado. ID: ' + id);
             });
         }
 
@@ -919,9 +805,7 @@
         function initQrScanner() {
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
             if (html5QrCode.isScanning) return;
-            html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText) => {
                     let assetId = decodedText.trim(), tenantFromQR = null;
                     try {
@@ -940,8 +824,7 @@
                     }
                     selectAsset(assetId);
                     stopQrScanner();
-                },
-                () => {}
+                }, () => {}
             ).catch(err => console.log("Cámara no disponible", err));
         }
 
@@ -950,7 +833,7 @@
         }
 
         function validatePin() {
-            if (!currentAssetId) { alert('Escaneá o seleccioná un generador primero.'); return; }
+            if (!currentAssetId) { alert('Escaneá o seleccioná un generador.'); return; }
             if (document.getElementById('pinInput').value === GLOBAL_PIN) {
                 serviceStartTime = new Date();
                 alert('PIN Correcto. Iniciando protocolo.');
@@ -959,7 +842,7 @@
         }
 
         // =========================================================
-        //  IMÁGENES + PDF
+        //  UTILIDADES
         // =========================================================
         function fileToCompressedDataURL(file, maxWidth = 700, quality = 0.7) {
             return new Promise((resolve, reject) => {
@@ -971,8 +854,7 @@
                         const scale = Math.min(1, maxWidth / img.width);
                         canvas.width = img.width * scale;
                         canvas.height = img.height * scale;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                         resolve(canvas.toDataURL('image/jpeg', quality));
                     };
                     img.onerror = reject;
@@ -983,100 +865,205 @@
             });
         }
 
+        function val(id) {
+            const el = document.getElementById(id);
+            if (!el) return '';
+            if (el.type === 'checkbox') return el.checked;
+            return el.value || '';
+        }
+
+        // =========================================================
+        //  PDF COMPLETO — TODOS LOS CAMPOS POR SECCIÓN
+        // =========================================================
         function generatePDF(s) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const pageW = doc.internal.pageSize.getWidth();
+            try {
+                if (!window.jspdf || !window.jspdf.jsPDF) {
+                    alert('❌ La librería jsPDF no cargó.\nRecargá con Ctrl+F5.');
+                    return false;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const pageW = doc.internal.pageSize.getWidth();
+                const pageH = doc.internal.pageSize.getHeight();
+                const d = s.details || {};
+                const M = 14; // margen
 
-            doc.setFillColor(11, 15, 23);
-            doc.rect(0, 0, pageW, 25, "F");
-            doc.setTextColor(132, 204, 22);
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(13);
-            doc.text("POWERCORE™ — REPORTE DE MANTENIMIENTO TÉCNICO", 14, 15);
-            doc.setFontSize(8);
-            doc.setTextColor(200, 200, 200);
-            doc.text(`Empresa: ${s.tenant || TENANT}`, 14, 21);
+                let y = 0;
+                function checkPage(need = 20) {
+                    if (y + need > pageH - 15) { doc.addPage(); y = 20; }
+                }
+                function section(title) {
+                    checkPage(15);
+                    doc.setFillColor(240, 240, 240);
+                    doc.rect(M, y - 5, pageW - 2 * M, 8, 'F');
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(10);
+                    doc.setTextColor(60, 80, 20);
+                    doc.text(title, M + 2, y);
+                    y += 8;
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(9);
+                    doc.setTextColor(30, 30, 30);
+                }
+                function line(label, value) {
+                    checkPage(6);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(label + ':', M + 2, y);
+                    doc.setFont("helvetica", "normal");
+                    const labelW = doc.getTextWidth(label + ':') + 4;
+                    doc.text(String(value || '-'), M + 2 + labelW, y);
+                    y += 5;
+                }
+                function twoLines(l1, v1, l2, v2) {
+                    checkPage(6);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(l1 + ':', M + 2, y);
+                    doc.setFont("helvetica", "normal");
+                    const w1 = doc.getTextWidth(l1 + ':') + 4;
+                    doc.text(String(v1 || '-'), M + 2 + w1, y);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(l2 + ':', pageW / 2, y);
+                    doc.setFont("helvetica", "normal");
+                    const w2 = doc.getTextWidth(l2 + ':') + 4;
+                    doc.text(String(v2 || '-'), pageW / 2 + w2, y);
+                    y += 5;
+                }
 
-            doc.setTextColor(30, 30, 30);
-            doc.setFontSize(10);
-            let y = 35;
-            doc.setFont("helvetica", "bold");
-            doc.text("DATOS DEL SERVICIO", 14, y); y += 6;
-            doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-            doc.text(`Servicio ID: ${s.id}`, 14, y);
-            doc.text(`Fecha: ${s.fecha || 'N/A'}`, 120, y); y += 6;
-            doc.text(`Cliente / Sitio: ${s.client || 'N/A'}`, 14, y);
-            doc.text(`Equipo: ${s.assetName || 'N/A'}`, 120, y); y += 6;
-            doc.text(`Técnico: ${s.tech || 'N/A'}`, 14, y);
-            doc.text(`Horómetro: ${s.horas || 'N/A'} Hs`, 120, y); y += 6;
-            doc.text(`Duración: ${s.duration || 'N/A'} min`, 14, y);
-            y += 4;
-            doc.setDrawColor(200, 200, 200);
-            doc.line(14, y, pageW - 14, y); y += 8;
-            doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-            doc.text("PARÁMETROS CLAVE", 14, y); y += 6;
-            doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-            doc.text(`• Presión Aceite: ${s.details.oilPres || 'N/A'}  |  Temp. Motor (min 10): ${s.details.m10_temp || 'N/A'} °C`, 14, y); y += 5;
-            doc.text(`• Tensión vacío R-S: ${s.details.vRS || 'N/A'} V  |  Frecuencia: ${s.details.vHz || 'N/A'} Hz`, 14, y); y += 5;
-            doc.text(`• Filtros: Aceite (${s.details.oilFilt1 || 'OK'}) | Combustible (${s.details.fuelFilt || 'OK'}) | Aire (${s.details.airFilt || 'OK'})`, 14, y); y += 5;
-            doc.text(`• Batería: ${s.details.batVolt || 'N/A'} | Bornes: ${s.details.batState || 'OK'}`, 14, y); y += 5;
-            doc.text(`• Fugas: Gas (${s.details.leakGas || 'OK'}) | Aceite (${s.details.leakOil || 'OK'}) | Combustible (${s.details.leakFuel || 'OK'})`, 14, y); y += 8;
+                // ENCABEZADO
+                doc.setFillColor(11, 15, 23);
+                doc.rect(0, 0, pageW, 25, "F");
+                doc.setTextColor(132, 204, 22);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(13);
+                doc.text("POWERCORE(TM) - REPORTE DE MANTENIMIENTO", M, 15);
+                doc.setFontSize(8);
+                doc.setTextColor(200, 200, 200);
+                doc.text("Empresa: " + (s.tenant || TENANT) + "  |  Servicio: " + (s.id || 'N/A'), M, 21);
 
-            doc.setFont("helvetica", "bold");
-            doc.text("CONTROLES CON MOTOR EN MARCHA", 14, y); y += 6;
-            doc.setFontSize(8);
+                y = 35;
 
-            const rows = [
-                ['Minuto 0',  s.details.m0_bat,  s.details.m0_temp,  s.details.m0_vca,  s.details.m0_amp,  s.details.m0_hz],
-                ['Minuto 5',  s.details.m5_bat,  s.details.m5_temp,  s.details.m5_vca,  s.details.m5_amp,  s.details.m5_hz],
-                ['Minuto 10', s.details.m10_bat, s.details.m10_temp, s.details.m10_vca, s.details.m10_amp, s.details.m10_hz]
-            ];
-            const cols = ['Tiempo', 'VCC Bat.', 'Temp °C', 'VCA Gen', 'Carga A', 'Hz'];
-            const colW = (pageW - 28) / cols.length;
+                // DATOS GENERALES
+                section("DATOS GENERALES");
+                twoLines("Servicio ID", s.id, "Fecha", s.fecha);
+                twoLines("Cliente", s.client, "Equipo", s.assetName);
+                twoLines("Sitio", s.sitio || s.client, "Tecnico", s.tech);
+                twoLines("Horometro", (s.horas || '') + ' Hs', "Duracion", (s.duration || 0) + ' min');
+                twoLines("Ensayos/ID", d.servEnsayos, "Horas Ultimo Serv.", d.servUltimoHs);
+                twoLines("Fecha Ultimo Serv.", d.servUltimaFecha, "Proximo Serv.", d.nextServiceHs);
 
-            doc.setFillColor(240, 240, 240);
-            doc.rect(14, y - 4, pageW - 28, 6, 'F');
-            doc.setFont("helvetica", "bold");
-            cols.forEach((c, i) => doc.text(c, 14 + i * colW + 1, y));
-            y += 6; doc.setFont("helvetica", "normal");
-            rows.forEach(r => {
-                r.forEach((val, i) => doc.text(String(val || '-').substring(0, 16), 14 + i * colW + 1, y));
-                y += 5;
-            });
-            y += 6;
-            doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-            doc.text("OBSERVACIONES", 14, y); y += 6;
-            doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-            const obs = doc.splitTextToSize(s.details.obsText || 'Sin observaciones.', pageW - 28);
-            doc.text(obs, 14, y);
-            y += obs.length * 5 + 6;
+                // TIPO DE SERVICIO
+                const tipos = [];
+                if (d.typePrev) tipos.push('Preventivo');
+                if (d.typeMensual) tipos.push('Mensual');
+                if (d.typeAnual) tipos.push('Anual');
+                if (d.typeCorrectivo) tipos.push('Correctivo');
+                line("Tipo de Servicio", tipos.join(' / ') || 'No especificado');
 
-            if (s.photos && (s.photos.p1 || s.photos.p2 || s.photos.p3)) {
-                if (y > 200) { doc.addPage(); y = 20; }
-                doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-                doc.text("REGISTRO FOTOGRÁFICO", 14, y); y += 6;
-                const imgW = (pageW - 34) / 3, imgH = imgW * 0.75;
-                let x = 14, idx = 1;
-                ['p1', 'p2', 'p3'].forEach(key => {
-                    if (s.photos[key]) {
-                        try { doc.addImage(s.photos[key], 'JPEG', x, y, imgW, imgH); } catch (e) {}
-                        doc.setFontSize(7);
-                        doc.text(`Foto ${idx}`, x, y + imgH + 3);
-                        x += imgW + 3; idx++;
-                    }
+                // TTA
+                section("INTERRUPTOR GENERAL Y TTA");
+                twoLines("Interruptor Marca/Mod.", d.intMarca, "Potencia (A)", d.intPot);
+                line("Estado / Torque Potencia", d.intTorque);
+                twoLines("TTA Marca/Modelo", d.ttaMarca, "Potencia / Polos", d.ttaPolos);
+                twoLines("Controlador", d.ttaControl, "Torque R-S-T-N", d.ttaTorqueRST);
+                twoLines("Torque R1-S1-T1-N1", d.ttaTorqueR1, "Torque U-V-W", d.ttaTorqueUVW);
+                twoLines("Prueba Falla Red", d.ttaPruebaRed, "Prueba Retardo Red", d.ttaRetardo);
+                line("Torque Comando", d.ttaComando);
+
+                // TENSIÓN
+                section("TENSION Y FRECUENCIA (EN VACIO)");
+                twoLines("Tension R-S (V)", d.vRS, "Tension S-T (V)", d.vST);
+                twoLines("Tension R-T (V)", d.vRT, "Tension N-R (V)", d.vNR);
+                twoLines("Tension N-S (V)", d.vNS, "Tension N-T (V)", d.vNT);
+                line("Frecuencia (Hz)", d.vHz);
+
+                // INSUMOS
+                section("INSUMOS, ACEITE, FILTROS Y BATERIAS");
+                twoLines("Presion Aceite", d.oilPres, "Marca/Tipo Aceite", d.oilType);
+                twoLines("Litros / Nivel Aceite", d.oilLevel, "Consumo Estimado", d.oilCons);
+                line("Filtro Aceite Primario", d.oilFilt1);
+                line("Filtro Aceite Secundario", d.oilFilt2);
+                twoLines("Filtro Aire", d.airFilt, "Filtro Combustible", d.fuelFilt);
+                twoLines("Nivel Tanque Combustible", d.fuelTank, "Estado Bornes / Cant.", d.batState);
+                twoLines("Tension Bateria OFF/ON", d.batVolt, "Cargador Bat. OFF/ON", d.chargVolt);
+
+                // MOTOR EN MARCHA
+                section("CONTROLES CON MOTOR EN MARCHA");
+                checkPage(40);
+                const rows = [
+                    ['Minuto 0',  d.m0_bat,  d.m0_temp,  d.m0_vca,  d.m0_amp,  d.m0_hz],
+                    ['Minuto 5',  d.m5_bat,  d.m5_temp,  d.m5_vca,  d.m5_amp,  d.m5_hz],
+                    ['Minuto 10', d.m10_bat, d.m10_temp, d.m10_vca, d.m10_amp, d.m10_hz]
+                ];
+                const cols = ['Tiempo', 'VCC Bat.', 'Temp C', 'VCA Gen', 'Carga A', 'Hz'];
+                const colW = (pageW - 2 * M) / cols.length;
+
+                doc.setFillColor(220, 220, 220);
+                doc.rect(M, y - 4, pageW - 2 * M, 6, 'F');
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8);
+                cols.forEach((c, i) => doc.text(c, M + i * colW + 1, y));
+                y += 6;
+                doc.setFont("helvetica", "normal");
+                rows.forEach(r => {
+                    r.forEach((v, i) => doc.text(String(v || '-').substring(0, 16), M + i * colW + 1, y));
+                    y += 5;
                 });
-                y += imgH + 12;
-            }
+                y += 3;
+                line("Ruidos Extranos", d.noises);
 
-            if (y > 250) { doc.addPage(); y = 20; }
-            doc.setDrawColor(120, 120, 120);
-            doc.line(14, y + 15, 90, y + 15);
-            doc.line(pageW - 90, y + 15, pageW - 14, y + 15);
-            doc.setFontSize(8);
-            doc.text("Firma Técnico", 14, y + 20);
-            doc.text("Firma Supervisor / Cliente", pageW - 90, y + 20);
-            doc.save(`Reporte_Mantenimiento_${s.id}.pdf`);
+                // FUGAS E INSPECCIÓN
+                section("FUGAS, LIMPIEZA E INSPECCION VISUAL");
+                twoLines("Fugas Gases", d.leakGas, "Fugas Lubricante", d.leakOil);
+                twoLines("Fugas Combustible", d.leakFuel, "Mangueras Refrigerante", d.hosesCool);
+                twoLines("Mangueras Combustible", d.hosesFuel, "Estado Correas", d.beltsState);
+                twoLines("Limpieza Exterior", d.cleanExt, "Limpieza Sala Maquinas", d.cleanRoom);
+                line("Turbo Filtro", d.turboFilt);
+
+                // OBSERVACIONES
+                section("OBSERVACIONES");
+                doc.setFont("helvetica", "normal");
+                const obs = doc.splitTextToSize(d.obsText || 'Sin observaciones.', pageW - 2 * M - 4);
+                checkPage(obs.length * 5 + 5);
+                doc.text(obs, M + 2, y);
+                y += obs.length * 5 + 5;
+
+                // FOTOS
+                if (s.photos && (s.photos.p1 || s.photos.p2 || s.photos.p3)) {
+                    section("REGISTRO FOTOGRAFICO");
+                    const imgW = (pageW - 2 * M - 6) / 3;
+                    const imgH = imgW * 0.75;
+                    checkPage(imgH + 10);
+                    let x = M, idx = 1;
+                    ['p1', 'p2', 'p3'].forEach(k => {
+                        if (s.photos[k]) {
+                            try { doc.addImage(s.photos[k], 'JPEG', x, y, imgW, imgH); } catch (e) { console.warn('img:', e); }
+                            doc.setFontSize(7);
+                            doc.text('Foto ' + idx, x, y + imgH + 3);
+                            x += imgW + 3; idx++;
+                        }
+                    });
+                    y += imgH + 12;
+                }
+
+                // FIRMAS
+                checkPage(35);
+                doc.setDrawColor(120, 120, 120);
+                doc.line(M, y + 15, 90, y + 15);
+                doc.line(pageW - 90, y + 15, pageW - M, y + 15);
+                doc.setFontSize(8);
+                doc.setFont("helvetica", "normal");
+                doc.text("Firma Tecnico Responsable", M, y + 20);
+                doc.text("Firma Supervisor / Cliente", pageW - 90, y + 20);
+
+                const fname = 'Reporte_' + (s.id || 'servicio') + '_' + (s.assetName || 'gen').replace(/[^a-z0-9]/gi, '_') + '.pdf';
+                doc.save(fname);
+                console.log('✅ PDF descargado:', fname);
+                return true;
+            } catch (err) {
+                console.error('Error generando PDF:', err);
+                alert('❌ Error al generar el PDF:\n' + err.message);
+                return false;
+            }
         }
 
         function downloadServicePDF(id) {
@@ -1086,25 +1073,27 @@
         }
 
         // =========================================================
-        //  GUARDAR SERVICIO
+        //  GUARDAR SERVICIO — TODOS LOS CAMPOS
         // =========================================================
         async function submitService(e) {
             e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = 'Guardando...'; btn.disabled = true;
+
             const f1 = document.getElementById('f1').files[0];
             const f2 = document.getElementById('f2').files[0];
             const f3 = document.getElementById('f3').files[0];
-            if (!f1 || !f2 || !f3) { alert('Las 3 fotos son obligatorias.'); return; }
-
-            const btn = e.target.querySelector('button[type="submit"]');
-            const originalText = btn.innerText;
-            btn.innerText = 'Procesando fotos...'; btn.disabled = true;
 
             let photoP1 = '', photoP2 = '', photoP3 = '';
             try {
-                [photoP1, photoP2, photoP3] = await Promise.all([
-                    fileToCompressedDataURL(f1), fileToCompressedDataURL(f2), fileToCompressedDataURL(f3)
-                ]);
-            } catch (err) { console.warn('Fallo compresión:', err); }
+                const tasks = [
+                    f1 ? fileToCompressedDataURL(f1) : Promise.resolve(''),
+                    f2 ? fileToCompressedDataURL(f2) : Promise.resolve(''),
+                    f3 ? fileToCompressedDataURL(f3) : Promise.resolve('')
+                ];
+                [photoP1, photoP2, photoP3] = await Promise.all(tasks);
+            } catch (err) { console.warn('Fotos:', err); }
 
             const duration = serviceStartTime ? Math.round((new Date() - serviceStartTime) / 60000) : 15;
             const sId = 'SRV-' + Date.now().toString().slice(-5);
@@ -1112,24 +1101,49 @@
             getAssets(assets => {
                 const a = assets.find(x => x.id === currentAssetId);
                 const newService = {
-                    id: sId, tenant: TENANT, assetId: currentAssetId,
+                    id: sId, tenant: TENANT, assetId: currentAssetId || 'sin_asignar',
                     assetName: a ? a.nameQR : 'Generador General',
                     client: a ? a.client : 'Cliente General',
-                    fecha: document.getElementById('servFecha').value,
-                    tech: document.getElementById('techName').value,
-                    horas: document.getElementById('inputHorasActual').value,
+                    sitio: a ? a.site : '',
+                    fecha: val('servFecha'),
+                    tech: val('techName'),
+                    horas: val('inputHorasActual'),
                     duration: duration,
                     photos: { p1: photoP1, p2: photoP2, p3: photoP3 },
                     details: {
-                        oilPres: document.getElementById('oilPres').value,
-                        m0_bat: document.getElementById('m0_bat').value, m0_temp: document.getElementById('m0_temp').value, m0_vca: document.getElementById('m0_vca').value, m0_amp: document.getElementById('m0_amp').value, m0_hz: document.getElementById('m0_hz').value,
-                        m5_bat: document.getElementById('m5_bat').value, m5_temp: document.getElementById('m5_temp').value, m5_vca: document.getElementById('m5_vca').value, m5_amp: document.getElementById('m5_amp').value, m5_hz: document.getElementById('m5_hz').value,
-                        m10_bat: document.getElementById('m10_bat').value, m10_temp: document.getElementById('m10_temp').value, m10_vca: document.getElementById('m10_vca').value, m10_amp: document.getElementById('m10_amp').value, m10_hz: document.getElementById('m10_hz').value,
-                        vRS: document.getElementById('vRS').value, vHz: document.getElementById('vHz').value,
-                        oilFilt1: document.getElementById('oilFilt1').value, fuelFilt: document.getElementById('fuelFilt').value, airFilt: document.getElementById('airFilt').value,
-                        batState: document.getElementById('batState').value, batVolt: document.getElementById('batVolt').value,
-                        leakGas: document.getElementById('leakGas').value, leakOil: document.getElementById('leakOil').value, leakFuel: document.getElementById('leakFuel').value,
-                        obsText: document.getElementById('obsText').value
+                        // Encabezado
+                        servEnsayos: val('servEnsayos'),
+                        servUltimoHs: val('servUltimoHs'),
+                        servUltimaFecha: val('servUltimaFecha'),
+                        typePrev: val('typePrev'),
+                        typeMensual: val('typeMensual'),
+                        typeAnual: val('typeAnual'),
+                        typeCorrectivo: val('typeCorrectivo'),
+                        // TTA
+                        intMarca: val('intMarca'), intPot: val('intPot'), intTorque: val('intTorque'),
+                        ttaMarca: val('ttaMarca'), ttaPolos: val('ttaPolos'), ttaControl: val('ttaControl'),
+                        ttaTorqueRST: val('ttaTorqueRST'), ttaTorqueR1: val('ttaTorqueR1'), ttaTorqueUVW: val('ttaTorqueUVW'),
+                        ttaPruebaRed: val('ttaPruebaRed'), ttaRetardo: val('ttaRetardo'), ttaComando: val('ttaComando'),
+                        // Tensión
+                        vRS: val('vRS'), vST: val('vST'), vRT: val('vRT'),
+                        vNR: val('vNR'), vNS: val('vNS'), vNT: val('vNT'), vHz: val('vHz'),
+                        // Insumos
+                        oilPres: val('oilPres'), oilType: val('oilType'), oilLevel: val('oilLevel'),
+                        oilFilt1: val('oilFilt1'), oilFilt2: val('oilFilt2'), oilCons: val('oilCons'),
+                        airFilt: val('airFilt'), fuelFilt: val('fuelFilt'), fuelTank: val('fuelTank'),
+                        batVolt: val('batVolt'), chargVolt: val('chargVolt'), batState: val('batState'),
+                        // Motor en marcha
+                        m0_bat: val('m0_bat'), m0_temp: val('m0_temp'), m0_vca: val('m0_vca'), m0_amp: val('m0_amp'), m0_hz: val('m0_hz'),
+                        m5_bat: val('m5_bat'), m5_temp: val('m5_temp'), m5_vca: val('m5_vca'), m5_amp: val('m5_amp'), m5_hz: val('m5_hz'),
+                        m10_bat: val('m10_bat'), m10_temp: val('m10_temp'), m10_vca: val('m10_vca'), m10_amp: val('m10_amp'), m10_hz: val('m10_hz'),
+                        noises: val('noises'),
+                        // Fugas
+                        leakGas: val('leakGas'), leakOil: val('leakOil'), leakFuel: val('leakFuel'),
+                        hosesCool: val('hosesCool'), hosesFuel: val('hosesFuel'), beltsState: val('beltsState'),
+                        cleanExt: val('cleanExt'), cleanRoom: val('cleanRoom'), turboFilt: val('turboFilt'),
+                        nextServiceHs: val('nextServiceHs'),
+                        // Observaciones
+                        obsText: val('obsText')
                     }
                 };
 
@@ -1142,8 +1156,12 @@
                 lastServicesHash = '';
 
                 const finish = (synced) => {
-                    generatePDF(newService);
-                    alert(`¡Servicio guardado y PDF exportado!\n${synced ? '☁️ Sincronizado.' : '⚠️ Solo LOCAL.'}`);
+                    const pdfOk = generatePDF(newService);
+                    if (pdfOk) {
+                        alert(`✅ Servicio guardado y PDF descargado.\n📄 ${sId}\n🏢 ${TENANT}\n🔧 ${newService.assetName}\n${synced ? '☁️ Sincronizado.' : '⚠️ Solo LOCAL.'}`);
+                    } else {
+                        alert(`⚠️ Servicio guardado, pero el PDF falló.\nProbá recargar con Ctrl+F5.`);
+                    }
                     document.getElementById('fullServiceForm').reset();
                     btn.innerText = originalText; btn.disabled = false;
                     updateKPIs();
@@ -1153,13 +1171,13 @@
                 if (useFirebase && db) {
                     db.ref(`tenants/${TENANT}/services/${sId}`).set(newService)
                         .then(() => finish(true))
-                        .catch(err => { console.error('Firebase falló:', err); finish(false); });
+                        .catch(err => { console.error('FB:', err); finish(false); });
                 } else finish(false);
             });
         }
 
         // =========================================================
-        //  KPIs + HISTORIAL
+        //  KPIs + HISTORIAL AGRUPADO
         // =========================================================
         function updateKPIs() {
             getAssets(assets => {
@@ -1180,28 +1198,74 @@
                 lastServicesHash = hash;
                 servicesCache = services;
                 container.innerHTML = '';
+
                 if (services.length === 0) {
-                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay servicios registrados.</p>';
+                    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay servicios registrados todavía.</p>';
                     return;
                 }
-                services.slice().reverse().forEach(s => {
-                    const div = document.createElement('div');
-                    div.className = 'history-item';
-                    div.innerHTML = `
-                        <div>
-                            <strong>Servicio ${s.id}</strong> — ${s.assetName} (${s.client})<br>
-                            <span style="color:var(--text-muted);">Fecha: ${s.fecha} | Técnico: ${s.tech} | Horas: ${s.horas} Hs | ${s.duration} min</span>
+
+                const grupos = {};
+                services.forEach(s => {
+                    const key = s.assetName || 'Sin nombre';
+                    if (!grupos[key]) grupos[key] = { name: key, client: s.client || '', items: [] };
+                    grupos[key].items.push(s);
+                });
+
+                Object.keys(grupos).sort().forEach(nombre => {
+                    const g = grupos[nombre];
+                    g.items.sort((a, b) => (b.id || '').localeCompare(a.id || ''));
+
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'gen-group';
+
+                    const header = document.createElement('div');
+                    header.className = 'gen-group-header';
+                    header.innerHTML = `
+                        <div class="gen-group-title">
+                            <span>⚙️</span>
+                            <span>${g.name}</span>
+                            <span style="color:var(--text-muted); font-size:0.8rem; font-weight:600;">(${g.client})</span>
                         </div>
-                        <button class="btn-secondary" data-download-id="${s.id}">📄 Descargar PDF</button>
+                        <span class="gen-group-count">${g.items.length} servicio${g.items.length === 1 ? '' : 's'}</span>
                     `;
-                    container.appendChild(div);
-                    div.querySelector('[data-download-id]').addEventListener('click', () => downloadServicePDF(s.id));
+                    groupDiv.appendChild(header);
+
+                    const body = document.createElement('div');
+                    body.className = 'gen-group-body';
+                    body.style.display = 'none';
+
+                    g.items.forEach(s => {
+                        const item = document.createElement('div');
+                        item.className = 'srv-item';
+                        item.innerHTML = `
+                            <div>
+                                <strong>${s.id}</strong> — ${s.fecha || 'sin fecha'}<br>
+                                <span style="color:var(--text-muted); font-size:0.8rem;">Técnico: ${s.tech || 'N/A'} | Horómetro: ${s.horas || 'N/A'} Hs | ${s.duration || 0} min</span>
+                            </div>
+                            <button class="btn-secondary" data-download-id="${s.id}">📄 PDF</button>
+                        `;
+                        body.appendChild(item);
+                    });
+
+                    groupDiv.appendChild(body);
+                    container.appendChild(groupDiv);
+
+                    header.addEventListener('click', () => {
+                        body.style.display = body.style.display === 'none' ? 'block' : 'none';
+                    });
+
+                    body.querySelectorAll('[data-download-id]').forEach(btn => {
+                        btn.addEventListener('click', (ev) => {
+                            ev.stopPropagation();
+                            downloadServicePDF(btn.getAttribute('data-download-id'));
+                        });
+                    });
                 });
             });
         }
 
         // =========================================================
-        //  GESTIÓN DE EMPRESAS (CON DATOS REALES DE FIREBASE)
+        //  GESTIÓN DE EMPRESAS
         // =========================================================
         function getAllLocalTenants() {
             const tenants = new Set();
@@ -1221,83 +1285,57 @@
                 document.getElementById('tenantManagerList').innerHTML = '<p style="color:var(--danger);">🔒 Bloqueado.</p>';
                 return;
             }
-
             const container = document.getElementById('tenantManagerList');
-            container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">Consultando Firebase (máx 7s)...</p>';
-
+            container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">Consultando Firebase...</p>';
             const localTenants = getAllLocalTenants();
             document.getElementById('tenantDiagLocal').innerText = localTenants.length;
 
-            // 1. Obtener lista de tenants desde Firebase
-            firebaseRead('tenants', 7000)
-                .then(snapshot => {
-                    const remoteData = snapshot.val() || {};
-                    const remoteTenants = Object.keys(remoteData);
-                    const all = Array.from(new Set([...localTenants, ...remoteTenants])).sort();
+            firebaseRead('tenants', 7000).then(snapshot => {
+                const remoteData = snapshot.val() || {};
+                const remoteTenants = Object.keys(remoteData);
+                const all = Array.from(new Set([...localTenants, ...remoteTenants])).sort();
+                document.getElementById('tenantDiagFirebase').innerHTML = '<span class="diag-ok">✔ Conectado</span>';
+                document.getElementById('tenantDiagRemote').innerText = remoteTenants.length;
+                container.innerHTML = '';
 
-                    document.getElementById('tenantDiagFirebase').innerHTML = '<span class="diag-ok">✔ Conectado</span>';
-                    document.getElementById('tenantDiagRemote').innerText = remoteTenants.length;
+                if (all.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted);">No hay empresas.</p>';
+                    return;
+                }
 
-                    container.innerHTML = '';
+                all.forEach(t => {
+                    const localAssetsCount = JSON.parse(localStorage.getItem(`genset_assets_${t}`) || '[]').length;
+                    const localServicesCount = JSON.parse(localStorage.getItem(`genset_services_${t}`) || '[]').length;
+                    const remoteAssets = (remoteData[t] && remoteData[t].assets) ? Object.keys(remoteData[t].assets).length : 0;
+                    const remoteServices = (remoteData[t] && remoteData[t].services) ? Object.keys(remoteData[t].services).length : 0;
+                    const isActive = t === TENANT;
 
-                    if (all.length === 0) {
-                        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay empresas creadas.</p>';
-                        return;
-                    }
-
-                    // 2. Para cada empresa, mostrar contadores REALES desde Firebase
-                    all.forEach(t => {
-                        const localAssetsCount = JSON.parse(localStorage.getItem(`genset_assets_${t}`) || '[]').length;
-                        const localServicesCount = JSON.parse(localStorage.getItem(`genset_services_${t}`) || '[]').length;
-
-                        const remoteAssets = (remoteData[t] && remoteData[t].assets) ? Object.keys(remoteData[t].assets).length : 0;
-                        const remoteServices = (remoteData[t] && remoteData[t].services) ? Object.keys(remoteData[t].services).length : 0;
-
-                        const isActive = t === TENANT;
-
-                        const div = document.createElement('div');
-                        div.className = 'tenant-manager-item' + (isActive ? ' active-tenant' : '');
-                        div.innerHTML = `
-                            <div class="tenant-manager-info">
-                                <div class="tenant-manager-name">${t} ${isActive ? '✅ (activa)' : ''}</div>
-                                <div class="tenant-manager-meta">
-                                    <span style="color:var(--success);">☁️ Nube: ${remoteAssets} gen · ${remoteServices} serv</span><br>
-                                    <span style="color:var(--text-muted);">💾 Local: ${localAssetsCount} gen · ${localServicesCount} serv</span>
-                                </div>
+                    const div = document.createElement('div');
+                    div.className = 'tenant-manager-item' + (isActive ? ' active-tenant' : '');
+                    div.innerHTML = `
+                        <div class="tenant-manager-info">
+                            <div class="tenant-manager-name">${t} ${isActive ? '✅' : ''}</div>
+                            <div class="tenant-manager-meta">
+                                <span style="color:var(--success);">☁️ Nube: ${remoteAssets} gen · ${remoteServices} serv</span><br>
+                                <span style="color:var(--text-muted);">💾 Local: ${localAssetsCount} gen · ${localServicesCount} serv</span>
                             </div>
-                            <div class="tenant-manager-actions">
-                                ${!isActive ? `<button class="btn-secondary" data-switch="${t}" style="font-size:0.7rem; padding:6px 10px;">Cambiar</button>` : ''}
-                                ${!isActive ? `<button class="btn-danger" data-delete="${t}" style="font-size:0.7rem; padding:6px 10px;">Eliminar</button>` : ''}
-                            </div>
-                        `;
-                        container.appendChild(div);
+                        </div>
+                        <div class="tenant-manager-actions">
+                            ${!isActive ? `<button class="btn-secondary" data-switch="${t}" style="font-size:0.7rem; padding:6px 10px;">Cambiar</button>` : ''}
+                            ${!isActive ? `<button class="btn-danger" data-delete="${t}" style="font-size:0.7rem; padding:6px 10px;">Eliminar</button>` : ''}
+                        </div>
+                    `;
+                    container.appendChild(div);
 
-                        const sw = div.querySelector('[data-switch]');
-                        if (sw) sw.addEventListener('click', () => { localStorage.setItem('pc_tenant_id', t); location.reload(); });
-                        const del = div.querySelector('[data-delete]');
-                        if (del) del.addEventListener('click', () => deleteTenant(t));
-                    });
-                })
-                .catch(err => {
-                    document.getElementById('tenantDiagFirebase').innerHTML = `<span class="diag-bad">❌ ${(err.message || '').substring(0,40)}</span>`;
-                    document.getElementById('tenantDiagRemote').innerText = '0 (error)';
-                    container.innerHTML = `<p style="color:var(--danger); font-size:0.85rem;">Error al leer Firebase: ${err.message}</p><p style="color:var(--text-muted); font-size:0.8rem; margin-top:8px;">Mostrando solo empresas locales:</p>`;
-
-                    localTenants.forEach(t => {
-                        const localAssetsCount = JSON.parse(localStorage.getItem(`genset_assets_${t}`) || '[]').length;
-                        const localServicesCount = JSON.parse(localStorage.getItem(`genset_services_${t}`) || '[]').length;
-                        const isActive = t === TENANT;
-                        const div = document.createElement('div');
-                        div.className = 'tenant-manager-item' + (isActive ? ' active-tenant' : '');
-                        div.innerHTML = `
-                            <div class="tenant-manager-info">
-                                <div class="tenant-manager-name">${t} ${isActive ? '✅' : ''}</div>
-                                <div class="tenant-manager-meta">💾 Local: ${localAssetsCount} gen · ${localServicesCount} serv</div>
-                            </div>
-                        `;
-                        container.appendChild(div);
-                    });
+                    const sw = div.querySelector('[data-switch]');
+                    if (sw) sw.addEventListener('click', () => { localStorage.setItem('pc_tenant_id', t); location.reload(); });
+                    const del = div.querySelector('[data-delete]');
+                    if (del) del.addEventListener('click', () => deleteTenant(t));
                 });
+            }).catch(err => {
+                document.getElementById('tenantDiagFirebase').innerHTML = `<span class="diag-bad">❌ ${(err.message||'').substring(0,40)}</span>`;
+                container.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+            });
         }
 
         function deleteTenant(t) {
@@ -1308,9 +1346,9 @@
             if (useFirebase && db) {
                 db.ref(`tenants/${t}`).remove()
                     .then(() => { alert(`"${t}" eliminada.`); renderTenantManager(); })
-                    .catch(err => { alert('Borrado local OK, Firebase falló.'); renderTenantManager(); });
+                    .catch(() => { alert('Borrado local OK.'); renderTenantManager(); });
             } else {
-                alert(`"${t}" eliminada (solo local).`);
+                alert(`"${t}" eliminada (local).`);
                 renderTenantManager();
             }
         }
@@ -1326,11 +1364,9 @@
 
             testFirebaseConnection().then(ok => {
                 if (ok) {
-                    // Subir automáticamente datos locales a la nube (silencioso)
-                    syncAllLocalToFirebase(false).then(result => {
-                        if (result.uploaded > 0) {
-                            console.log(`🔄 Auto-sync: ${result.uploaded} nuevos datos subidos a Firebase.`);
-                            // Refrescar KPIs y lista después de subir
+                    syncAllLocalToFirebase(false).then(r => {
+                        if (r.uploaded > 0) {
+                            console.log(`🔄 Auto-sync: ${r.uploaded} subidos a Firebase.`);
                             loadAssetsList(true);
                             updateKPIs();
                         }
