@@ -6,12 +6,10 @@
     <title>POWERCORE™ HMI — Industrial Genset Management SaaS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     
-    <!-- Librerías Externas por CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
-    <!-- SDK de Firebase (Compat para Base de Datos y App) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -55,6 +53,7 @@
             height: 100vh;
             z-index: 100;
             transition: all 0.3s ease;
+            overflow-y: auto;
         }
 
         .brand-logo {
@@ -83,7 +82,13 @@
             border-color: var(--primary); box-shadow: 0 0 15px rgba(132, 204, 22, 0.15);
         }
 
-        .system-status { background: #0d121d; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.75rem; }
+        .bottom-panel { display: flex; flex-direction: column; gap: 10px; }
+
+        .system-status, .tenant-status { background: #0d121d; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.75rem; }
+        .tenant-status input { padding: 6px 8px; font-size: 0.75rem; margin-top: 6px; }
+        .tenant-status .btn-secondary { margin-top: 6px; width: 100%; font-size: 0.7rem; padding: 6px; }
+        .tenant-active { color: var(--primary); font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-top: 4px; word-break: break-all; }
+
         .status-indicator { display: flex; align-items: center; gap: 8px; color: var(--success); font-weight: 700; margin-top: 4px; }
         .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
@@ -133,6 +138,7 @@
         .asset-title { font-size: 1rem; font-weight: 700; color: #fff; }
         .asset-client { font-size: 0.8rem; color: var(--text-muted); }
         .badge-iot { font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 700; background: rgba(132, 204, 22, 0.15); color: var(--primary); border: 1px solid rgba(132, 204, 22, 0.3); }
+        .qr-box { display: inline-block; background: #fff; padding: 6px; border-radius: 4px; }
 
         .step-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; border-bottom: 1px solid var(--border); padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
         .step-tab {
@@ -160,8 +166,9 @@
             background: var(--primary); color: #07090e; border: none; padding: 14px 20px; font-weight: 800;
             border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.03em;
         }
-        button.btn-act:hover { background: #99f6e4; transform: translateY(-1px); }
+        button.btn-act:hover { background: #a3e635; transform: translateY(-1px); }
         button.btn-secondary { background: #3b82f6; color: #fff; border: none; padding: 10px 14px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        button.btn-secondary:hover { background: #2563eb; }
         button.btn-danger { background: var(--danger); color: #fff; border: none; padding: 8px 12px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
 
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); }
@@ -172,13 +179,19 @@
         .checkbox-group { display: flex; align-items: center; gap: 8px; background: var(--bg-input); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
         .checkbox-group input { width: 18px; height: 18px; accent-color: var(--primary); }
 
+        .history-item {
+            background: var(--bg-card); padding: 14px; margin-bottom: 10px; border-radius: 6px;
+            border: 1px solid var(--border); font-size: 0.85rem;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+        }
+
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; position: relative; padding: 12px 16px; border-right: none; border-bottom: 1px solid var(--border); }
+            .sidebar { width: 100%; height: auto; position: relative; padding: 12px 16px; border-right: none; border-bottom: 1px solid var(--border); overflow: visible; }
             .mobile-toggle { display: block; }
             .nav-menu { display: none; flex-direction: column; width: 100%; margin-top: 10px; gap: 6px; }
             .nav-menu.open { display: flex; }
-            .system-status { display: none; }
+            .bottom-panel { margin-top: 10px; }
             .main-wrapper { margin-left: 0; max-width: 100%; padding: 16px; }
             .top-bar { margin-bottom: 16px; padding-bottom: 12px; }
             .page-title h1 { font-size: 1.25rem; }
@@ -190,28 +203,36 @@
 </head>
 <body>
 
-    <!-- SIDEBAR / HEADER ADAPTABLE -->
     <aside class="sidebar">
-        <div class="brand-logo">
-            <div>⚡ <span>POWERCORE</span></div>
-            <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
+        <div>
+            <div class="brand-logo">
+                <div>⚡ <span>POWERCORE</span></div>
+                <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
+            </div>
+            <nav class="nav-menu" id="navMenu">
+                <div class="nav-item active" onclick="switchView('view-dashboard', this)">📊 <span>Dashboard</span></div>
+                <div class="nav-item" onclick="switchView('view-assets', this)">💻 <span>Activos 360</span></div>
+                <div class="nav-item" onclick="switchView('view-pin', this)">📱 <span>Escaneo QR / PIN</span></div>
+                <div class="nav-item" onclick="switchView('view-protocol', this)">📋 <span>Protocolo Campo</span></div>
+                <div class="nav-item" onclick="switchView('view-history', this)">📜 <span>Bitácora</span></div>
+            </nav>
         </div>
-        <nav class="nav-menu" id="navMenu">
-            <div class="nav-item active" onclick="switchView('view-dashboard', this)">📊 <span>Dashboard</span></div>
-            <div class="nav-item" onclick="switchView('view-assets', this)">💻 <span>Activos 360</span></div>
-            <div class="nav-item" onclick="switchView('view-pin', this)">📱 <span>Escaneo QR / PIN</span></div>
-            <div class="nav-item" onclick="switchView('view-protocol', this)">📋 <span>Protocolo Campo</span></div>
-            <div class="nav-item" onclick="switchView('view-history', this)">📜 <span>Bitácora</span></div>
-        </nav>
-        <div class="system-status">
-            <div>ESTADO HMI</div>
-            <div class="status-indicator">
-                <div class="dot"></div> <span id="syncStatus">Conectando...</span>
+        <div class="bottom-panel">
+            <div class="system-status">
+                <div>ESTADO HMI</div>
+                <div class="status-indicator">
+                    <div class="dot"></div> <span id="syncStatus">Conectando...</span>
+                </div>
+            </div>
+            <div class="tenant-status">
+                <div>EMPRESA ACTIVA (TENANT)</div>
+                <div class="tenant-active" id="tenantDisplay">default</div>
+                <input type="text" id="tenantInput" placeholder="Código de empresa">
+                <button class="btn-secondary" onclick="changeTenant()">Cambiar Empresa</button>
             </div>
         </div>
     </aside>
 
-    <!-- ÁREA DE TRABAJO PRINCIPAL -->
     <main class="main-wrapper">
         <header class="top-bar">
             <div class="page-title">
@@ -221,7 +242,6 @@
             <button class="btn-act" style="width: auto;" onclick="switchView('view-assets', document.querySelectorAll('.nav-item')[1])">+ Nuevo Generador</button>
         </header>
 
-        <!-- 1. DASHBOARD -->
         <section id="view-dashboard" class="view active">
             <div class="kpi-grid">
                 <div class="kpi-box">
@@ -256,14 +276,16 @@
                     <div class="scada-card-title">Sincronización Multiplataforma <span>Cloud Realtime</span></div>
                     <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
                         <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); padding:10px 12px; border-radius:6px; font-size:0.8rem; color:#4ade80;">
-                            ✔ Sincronización instantánea entre celular, tablet y PC habilitada por Firebase.
+                            ✔ Sincronización híbrida Local + Firebase activa.
+                        </div>
+                        <div style="background:rgba(132,204,22,0.08); border:1px solid rgba(132,204,22,0.25); padding:10px 12px; border-radius:6px; font-size:0.8rem; color:var(--primary);">
+                            🔒 Aislamiento por empresa: <span id="dashboardTenant">default</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- 2. ACTIVOS 360 -->
         <section id="view-assets" class="view">
             <fieldset>
                 <legend>Alta de Nuevo Generador y Pañol Específico</legend>
@@ -309,7 +331,6 @@
             <div class="assets-grid" id="assetsList"></div>
         </section>
 
-        <!-- 3. ESCANEO QR & VALIDACIÓN DE PIN -->
         <section id="view-pin" class="view">
             <div style="max-width: 600px; margin: 0 auto;">
                 <fieldset style="text-align: center; margin-bottom: 20px;">
@@ -332,7 +353,6 @@
             </div>
         </section>
 
-        <!-- 4. PROTOCOLO DE CAMPO (FIELDTECH) -->
         <section id="view-protocol" class="view">
             <div class="step-tabs">
                 <div class="step-tab active" onclick="switchStep('step-1', this)">1. Encabezado & TTA</div>
@@ -521,7 +541,6 @@
             </form>
         </section>
 
-        <!-- 5. BITÁCORA E HISTORIAL -->
         <section id="view-history" class="view">
             <fieldset>
                 <legend>Historial Inalterable de Servicios Realizados</legend>
@@ -533,7 +552,31 @@
     </main>
 
     <script>
-        // CONFIGURACIÓN DE FIREBASE REALTIME DATABASE (COMPAT)
+        // =========================================================
+        //  SISTEMA MULTI-TENANT (AISLAMIENTO POR EMPRESA)
+        // =========================================================
+        let TENANT = localStorage.getItem('pc_tenant_id');
+        if (!TENANT) {
+            TENANT = 'default';
+            localStorage.setItem('pc_tenant_id', TENANT);
+        }
+
+        function assetsKey()   { return `genset_assets_${TENANT}`; }
+        function servicesKey() { return `genset_services_${TENANT}`; }
+
+        function changeTenant() {
+            const input = document.getElementById('tenantInput');
+            const newTenant = (input.value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+            if (!newTenant) { alert('Ingrese un código de empresa válido (letras, números, guion).'); return; }
+            if (newTenant === TENANT) { alert('Ya está operando con esa empresa.'); return; }
+            if (!confirm(`¿Cambiar a la empresa "${newTenant}"?\n\nLos datos de "${TENANT}" quedan guardados y se restauran al volver.`)) return;
+            localStorage.setItem('pc_tenant_id', newTenant);
+            location.reload();
+        }
+
+        // =========================================================
+        //  FIREBASE
+        // =========================================================
         const firebaseConfig = {
             apiKey: "AIzaSyCXJkhe5Emq-ihbcCMqYnF_N1WMI5jjd7I",
             authDomain: "generadores-saas.firebaseapp.com",
@@ -551,16 +594,25 @@
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
             useFirebase = true;
-            document.getElementById('syncStatus').innerText = "Firebase Nube Activo";
+            document.getElementById('syncStatus').innerText = `Firebase OK [${TENANT}]`;
         } catch (e) {
             document.getElementById('syncStatus').innerText = "Modo Local (localStorage)";
         }
+
+        document.getElementById('tenantDisplay').innerText = TENANT;
+        document.getElementById('dashboardTenant').innerText = TENANT;
 
         const GLOBAL_PIN = "1234";
         let currentAssetId = null;
         let serviceStartTime = null;
         let html5QrCode = null;
+        let lastAssetsHash = '';
+        let lastServicesHash = '';
+        let servicesCache = [];
 
+        // =========================================================
+        //  NAVEGACIÓN
+        // =========================================================
         function toggleMobileMenu() {
             document.getElementById('navMenu').classList.toggle('open');
         }
@@ -569,21 +621,22 @@
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
             
-            if(el) {
+            if (el) {
                 document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
                 el.classList.add('active');
             }
 
             document.getElementById('navMenu').classList.remove('open');
 
-            if(viewId === 'view-pin') {
+            if (viewId === 'view-pin') {
                 initQrScanner();
             } else {
                 stopQrScanner();
             }
 
-            if(viewId === 'view-dashboard') updateKPIs();
-            if(viewId === 'view-history') renderHistory();
+            if (viewId === 'view-dashboard') updateKPIs();
+            if (viewId === 'view-history') renderHistory();
+            if (viewId === 'view-assets') loadAssetsList(true);
         }
 
         function switchStep(stepId, tabEl) {
@@ -593,37 +646,50 @@
             tabEl.classList.add('active');
         }
 
+        // =========================================================
+        //  CAPA DE DATOS HÍBRIDA (LOCAL + FIREBASE) POR TENANT
+        // =========================================================
         function getAssets(callback) {
+            const localAssets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
+            callback(localAssets);
+
             if (useFirebase && db) {
-                db.ref('assets').once('value', snapshot => {
-                    const data = snapshot.val() || {};
-                    callback(Object.keys(data).map(k => data[k]));
-                }).catch(() => {
-                    callback(JSON.parse(localStorage.getItem('genset_assets') || '[]'));
-                });
-            } else {
-                callback(JSON.parse(localStorage.getItem('genset_assets') || '[]'));
+                db.ref(`tenants/${TENANT}/assets`).once('value', snapshot => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const list = Object.keys(data).map(k => data[k]);
+                        localStorage.setItem(assetsKey(), JSON.stringify(list));
+                        callback(list);
+                    }
+                }).catch(() => console.log("Usando caché local de activos"));
             }
         }
 
         function getServices(callback) {
+            const localServices = JSON.parse(localStorage.getItem(servicesKey()) || '[]');
+            callback(localServices);
+
             if (useFirebase && db) {
-                db.ref('services').once('value', snapshot => {
-                    const data = snapshot.val() || {};
-                    callback(Object.keys(data).map(k => data[k]));
-                }).catch(() => {
-                    callback(JSON.parse(localStorage.getItem('genset_services') || '[]'));
-                });
-            } else {
-                callback(JSON.parse(localStorage.getItem('genset_services') || '[]'));
+                db.ref(`tenants/${TENANT}/services`).once('value', snapshot => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const list = Object.keys(data).map(k => data[k]);
+                        localStorage.setItem(servicesKey(), JSON.stringify(list));
+                        callback(list);
+                    }
+                }).catch(() => console.log("Usando caché local de servicios"));
             }
         }
 
+        // =========================================================
+        //  GUARDAR ACTIVO + CREAR QR (CORREGIDO)
+        // =========================================================
         function saveAsset(e) {
             e.preventDefault();
             const id = 'GEN-' + Date.now().toString().slice(-5);
             const newAsset = {
                 id: id,
+                tenant: TENANT,
                 client: document.getElementById('assetClient').value,
                 site: document.getElementById('assetSite').value,
                 code: document.getElementById('assetCode').value,
@@ -636,59 +702,70 @@
                     oil: document.getElementById('partOil').value || 'Sin asignar',
                     fuel: document.getElementById('partFuel').value || 'Sin asignar',
                     air: document.getElementById('partAir').value || 'Sin asignar'
-                }
+                },
+                createdAt: new Date().toISOString()
             };
 
-            const finalizeAssetSave = () => {
-                alert('Generador y QR registrados con éxito.');
+            // Guardar localmente SIEMPRE
+            const assets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
+            assets.push(newAsset);
+            localStorage.setItem(assetsKey(), JSON.stringify(assets));
+
+            // Reset del hash para forzar re-render limpio
+            lastAssetsHash = '';
+
+            const finalize = () => {
                 document.getElementById('assetForm').reset();
-                loadAssetsList();
-                updateKPIs();
                 switchView('view-assets', document.querySelectorAll('.nav-item')[1]);
+                loadAssetsList(true);
+                updateKPIs();
+                setTimeout(() => {
+                    alert(`✅ Generador "${newAsset.nameQR}" registrado.\n🆔 ID: ${id}\n📱 QR creado y listo para escanear.`);
+                }, 250);
             };
 
             if (useFirebase && db) {
-                db.ref('assets/' + id).set(newAsset).then(finalizeAssetSave).catch(err => {
-                    console.error(err);
-                    // Fallback local si falla la red
-                    const assets = JSON.parse(localStorage.getItem('genset_assets') || '[]');
-                    assets.push(newAsset);
-                    localStorage.setItem('genset_assets', JSON.stringify(assets));
-                    finalizeAssetSave();
-                });
+                db.ref(`tenants/${TENANT}/assets/${id}`).set(newAsset)
+                    .then(finalize)
+                    .catch(err => { console.error("Firebase falló, guardado local OK:", err); finalize(); });
             } else {
-                const assets = JSON.parse(localStorage.getItem('genset_assets') || '[]');
-                assets.push(newAsset);
-                localStorage.setItem('genset_assets', JSON.stringify(assets));
-                finalizeAssetSave();
+                finalize();
             }
         }
 
         function deleteAsset(id) {
-            if(confirm('¿Está seguro de eliminar este generador?')) {
-                if (useFirebase && db) {
-                    db.ref('assets/' + id).remove().then(() => {
-                        loadAssetsList();
-                        updateKPIs();
-                    });
-                } else {
-                    let assets = JSON.parse(localStorage.getItem('genset_assets') || '[]');
-                    assets = assets.filter(a => a.id !== id);
-                    localStorage.setItem('genset_assets', JSON.stringify(assets));
-                    loadAssetsList();
-                    updateKPIs();
-                }
+            if (!confirm('¿Está seguro de eliminar este generador? Se borrará también su QR.')) return;
+            let assets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
+            assets = assets.filter(a => a.id !== id);
+            localStorage.setItem(assetsKey(), JSON.stringify(assets));
+
+            if (useFirebase && db) {
+                db.ref(`tenants/${TENANT}/assets/${id}`).remove().catch(err => console.log(err));
             }
+            lastAssetsHash = '';
+            loadAssetsList(true);
+            updateKPIs();
         }
 
-        function loadAssetsList() {
+        // =========================================================
+        //  RENDER DE LA LISTA DE ACTIVOS + QR (CORREGIDO)
+        // =========================================================
+        function loadAssetsList(force = false) {
             getAssets(assets => {
                 const container = document.getElementById('assetsList');
+                if (!container) return;
+
+                const hash = JSON.stringify(assets);
+                if (!force && hash === lastAssetsHash) return;
+                lastAssetsHash = hash;
+
                 container.innerHTML = '';
-                if(assets.length === 0) {
+
+                if (assets.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay generadores cargados.</p>';
                     return;
                 }
+
                 assets.forEach(a => {
                     const div = document.createElement('div');
                     div.className = 'asset-card';
@@ -702,7 +779,7 @@
                                 <span class="badge-iot">${a.iot}</span>
                             </div>
                             <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
-                                ID: <strong>${a.id}</strong> | Motor: ${a.motor}
+                                ID: <strong>${a.id}</strong> | Motor: ${a.motor || 'N/A'}
                             </p>
                             <div style="background:rgba(0,0,0,0.2); padding:8px; border-radius:6px; font-size:0.75rem; margin-bottom:12px; border:1px solid var(--border);">
                                 <strong style="color:var(--primary);">Pañol de Repuestos Específico:</strong><br>
@@ -711,7 +788,7 @@
                                 💨 Aire: ${a.parts ? a.parts.air : 'Sin asignar'}
                             </div>
                             <div style="margin-bottom: 10px; text-align: center;">
-                                <div id="qrcode-${a.id}" style="display: inline-block; background: #fff; padding: 6px; border-radius: 4px;"></div>
+                                <div class="qr-box" data-qr-id="${a.id}"></div>
                             </div>
                         </div>
                         <div style="display:flex; gap:8px;">
@@ -721,16 +798,23 @@
                     `;
                     container.appendChild(div);
 
-                    setTimeout(() => {
-                        const qrContainer = document.getElementById(`qrcode-${a.id}`);
-                        if(qrContainer && qrContainer.childElementCount === 0) {
-                            new QRCode(qrContainer, {
+                    // Generación EXPLÍCITA e inmediata del QR (sin depender de setTimeout global)
+                    const qrBox = div.querySelector(`[data-qr-id="${a.id}"]`);
+                    if (qrBox) {
+                        try {
+                            new QRCode(qrBox, {
                                 text: a.id,
                                 width: 75,
-                                height: 75
+                                height: 75,
+                                colorDark: "#000000",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.M
                             });
+                        } catch (err) {
+                            console.error('Error generando QR:', err);
+                            qrBox.innerHTML = `<span style="color:#000; font-size:10px;">QR: ${a.id}</span>`;
                         }
-                    }, 100);
+                    }
                 });
             });
         }
@@ -742,17 +826,23 @@
                     currentAssetId = a.id;
                     document.getElementById('qrDisplayName').innerText = `${a.nameQR} (${a.client})`;
                     document.getElementById('qrDisplayModel').innerText = `${a.generator} | Motor: ${a.motor} | Filtro Aceite: ${a.parts ? a.parts.oil : 'N/A'}`;
-                    alert(`Activo seleccionado: ${a.nameQR}. Ingrese su PIN para continuar.`);
+                    alert(`Activo seleccionado: ${a.nameQR}.\nIngrese su PIN para continuar.`);
+                    switchView('view-pin', document.querySelectorAll('.nav-item')[2]);
                 } else {
-                    alert('Activo no encontrado en la base de datos.');
+                    alert('Activo no encontrado.');
                 }
             });
         }
 
+        // =========================================================
+        //  ESCANEO QR
+        // =========================================================
         function initQrScanner() {
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
             }
+            if (html5QrCode.isScanning) return;
+
             html5QrCode.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -760,7 +850,7 @@
                     selectAsset(decodedText.trim());
                     stopQrScanner();
                 },
-                (errorMessage) => { }
+                () => {}
             ).catch(err => {
                 console.log("Cámara no disponible", err);
             });
@@ -773,11 +863,11 @@
         }
 
         function validatePin() {
-            if(!currentAssetId) {
+            if (!currentAssetId) {
                 alert('Debe escanear o seleccionar un generador primero.');
                 return;
             }
-            if(document.getElementById('pinInput').value === GLOBAL_PIN) {
+            if (document.getElementById('pinInput').value === GLOBAL_PIN) {
                 serviceStartTime = new Date();
                 alert('PIN Correcto. Iniciando protocolo de mantenimiento.');
                 switchView('view-protocol', document.querySelectorAll('.nav-item')[3]);
@@ -786,70 +876,205 @@
             }
         }
 
+        // =========================================================
+        //  UTILIDADES
+        // =========================================================
+        function fileToCompressedDataURL(file, maxWidth = 700, quality = 0.7) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const scale = Math.min(1, maxWidth / img.width);
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // =========================================================
+        //  PDF (CON FOTOS, CORREGIDO)
+        // =========================================================
         function generatePDF(s) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            const pageW = doc.internal.pageSize.getWidth();
 
+            // Encabezado
             doc.setFillColor(11, 15, 23);
-            doc.rect(0, 0, 210, 25, "F");
+            doc.rect(0, 0, pageW, 25, "F");
             doc.setTextColor(132, 204, 22);
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(14);
-            doc.text("POWERCORE™ — REPORTE DE MANTENIMIENTO TÉCNICO", 14, 16);
+            doc.setFontSize(13);
+            doc.text("POWERCORE™ — REPORTE DE MANTENIMIENTO TÉCNICO", 14, 15);
+            doc.setFontSize(8);
+            doc.setTextColor(200, 200, 200);
+            doc.text(`Empresa: ${s.tenant || TENANT}`, 14, 21);
 
             doc.setTextColor(30, 30, 30);
             doc.setFontSize(10);
             let y = 35;
 
+            doc.setFont("helvetica", "bold");
+            doc.text("DATOS DEL SERVICIO", 14, y);
+            y += 6;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
             doc.text(`Servicio ID: ${s.id}`, 14, y);
-            doc.text(`Fecha: ${s.fecha}`, 120, y);
-            y += 8;
-            doc.text(`Cliente / Sitio: ${s.client}`, 14, y);
-            doc.text(`Equipo: ${s.assetName}`, 120, y);
-            y += 8;
-            doc.text(`Técnico Responsable: ${s.tech}`, 14, y);
-            doc.text(`Horómetro Actual: ${s.horas} Hs`, 120, y);
-            y += 8;
-            doc.text(`Duración de Servicio: ${s.duration} minutos`, 14, y);
+            doc.text(`Fecha: ${s.fecha || 'N/A'}`, 120, y);
+            y += 6;
+            doc.text(`Cliente / Sitio: ${s.client || 'N/A'}`, 14, y);
+            doc.text(`Equipo: ${s.assetName || 'N/A'}`, 120, y);
+            y += 6;
+            doc.text(`Técnico: ${s.tech || 'N/A'}`, 14, y);
+            doc.text(`Horómetro: ${s.horas || 'N/A'} Hs`, 120, y);
+            y += 6;
+            doc.text(`Duración: ${s.duration || 'N/A'} min`, 14, y);
 
-            y += 12;
+            y += 4;
             doc.setDrawColor(200, 200, 200);
-            doc.line(14, y, 196, y);
-            y += 10;
+            doc.line(14, y, pageW - 14, y);
+            y += 8;
 
+            // Parámetros clave
             doc.setFont("helvetica", "bold");
-            doc.text("REGISTRO DE PARÁMETROS CLAVE:", 14, y);
-            y += 7;
+            doc.setFontSize(10);
+            doc.text("PARÁMETROS CLAVE", 14, y);
+            y += 6;
             doc.setFont("helvetica", "normal");
-            doc.text(`• Presión de Aceite: ${s.details.oilPres || 'N/A'} | Temp. Motor (Min 10): ${s.details.m10_temp || 'N/A'} °C`, 14, y);
-            y += 6;
-            doc.text(`• Tensión TTA (En Vacío) R-S: ${s.details.vRS || 'N/A'}V | Frecuencia: ${s.details.vHz || 'N/A'} Hz`, 14, y);
-            y += 6;
-            doc.text(`• Filtros: Aceite (${s.details.oilFilt1 || 'OK'}) | Combustible (${s.details.fuelFilt || 'OK'}) | Aire (${s.details.airFilt || 'OK'})`, 14, y);
-            y += 6;
-            doc.text(`• Baterías y Bornes: ${s.details.batState || 'OK'} | Tensión Batería: ${s.details.batVolt || 'N/A'}`, 14, y);
-            y += 6;
-            doc.text(`• Inspección de Fugas: Gases (${s.details.leakGas || 'OK'}) | Lubricante (${s.details.leakOil || 'OK'}) | Combustible (${s.details.leakFuel || 'OK'})`, 14, y);
+            doc.setFontSize(9);
+            doc.text(`• Presión Aceite: ${s.details.oilPres || 'N/A'}  |  Temp. Motor (min 10): ${s.details.m10_temp || 'N/A'} °C`, 14, y); y += 5;
+            doc.text(`• Tensión vacío R-S: ${s.details.vRS || 'N/A'} V  |  Frecuencia: ${s.details.vHz || 'N/A'} Hz`, 14, y); y += 5;
+            doc.text(`• Filtros: Aceite (${s.details.oilFilt1 || 'OK'}) | Combustible (${s.details.fuelFilt || 'OK'}) | Aire (${s.details.airFilt || 'OK'})`, 14, y); y += 5;
+            doc.text(`• Batería: ${s.details.batVolt || 'N/A'} | Bornes: ${s.details.batState || 'OK'}`, 14, y); y += 5;
+            doc.text(`• Fugas: Gas (${s.details.leakGas || 'OK'}) | Aceite (${s.details.leakOil || 'OK'}) | Combustible (${s.details.leakFuel || 'OK'})`, 14, y); y += 8;
 
-            y += 12;
+            // Tabla motor en marcha
             doc.setFont("helvetica", "bold");
-            doc.text("OBSERVACIONES GENERALES:", 14, y);
-            y += 7;
+            doc.text("CONTROLES CON MOTOR EN MARCHA", 14, y);
+            y += 6;
+            doc.setFontSize(8);
+
+            const rows = [
+                ['Minuto 0',  s.details.m0_bat,  s.details.m0_temp,  s.details.m0_vca,  s.details.m0_amp,  s.details.m0_hz],
+                ['Minuto 5',  s.details.m5_bat,  s.details.m5_temp,  s.details.m5_vca,  s.details.m5_amp,  s.details.m5_hz],
+                ['Minuto 10', s.details.m10_bat, s.details.m10_temp, s.details.m10_vca, s.details.m10_amp, s.details.m10_hz]
+            ];
+
+            const cols = ['Tiempo', 'VCC Bat.', 'Temp °C', 'VCA Gen', 'Carga A', 'Hz'];
+            const colW = (pageW - 28) / cols.length;
+
+            // Header de tabla
+            doc.setFillColor(240, 240, 240);
+            doc.rect(14, y - 4, pageW - 28, 6, 'F');
+            doc.setFont("helvetica", "bold");
+            cols.forEach((c, i) => doc.text(c, 14 + i * colW + 1, y));
+            y += 6;
             doc.setFont("helvetica", "normal");
-            doc.text(s.details.obsText || 'Sin observaciones adicionales.', 14, y, { maxWidth: 180 });
+
+            rows.forEach(r => {
+                r.forEach((val, i) => {
+                    doc.text(String(val || '-').substring(0, 16), 14 + i * colW + 1, y);
+                });
+                y += 5;
+            });
+
+            y += 6;
+
+            // Observaciones
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text("OBSERVACIONES", 14, y);
+            y += 6;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            const obs = doc.splitTextToSize(s.details.obsText || 'Sin observaciones adicionales.', pageW - 28);
+            doc.text(obs, 14, y);
+            y += obs.length * 5 + 6;
+
+            // Fotos
+            if (s.photos && (s.photos.p1 || s.photos.p2 || s.photos.p3)) {
+                if (y > 200) { doc.addPage(); y = 20; }
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.text("REGISTRO FOTOGRÁFICO", 14, y);
+                y += 6;
+
+                const imgW = (pageW - 34) / 3;
+                const imgH = imgW * 0.75;
+                let x = 14;
+                let idx = 1;
+                ['p1', 'p2', 'p3'].forEach(key => {
+                    if (s.photos[key]) {
+                        try {
+                            doc.addImage(s.photos[key], 'JPEG', x, y, imgW, imgH);
+                        } catch (e) { /* skip */ }
+                        doc.setFontSize(7);
+                        doc.text(`Foto ${idx}`, x, y + imgH + 3);
+                        x += imgW + 3;
+                        idx++;
+                    }
+                });
+                y += imgH + 12;
+            }
+
+            // Firma
+            if (y > 250) { doc.addPage(); y = 20; }
+            doc.setDrawColor(120, 120, 120);
+            doc.line(14, y + 15, 90, y + 15);
+            doc.line(pageW - 90, y + 15, pageW - 14, y + 15);
+            doc.setFontSize(8);
+            doc.text("Firma Técnico Responsable", 14, y + 20);
+            doc.text("Firma Supervisor / Cliente", pageW - 90, y + 20);
 
             doc.save(`Reporte_Mantenimiento_${s.id}.pdf`);
         }
 
-        function submitService(e) {
+        // Descarga desde historial (sin JSON inline roto)
+        function downloadServicePDF(id) {
+            const s = servicesCache.find(x => x.id === id);
+            if (!s) { alert('Servicio no encontrado en caché.'); return; }
+            generatePDF(s);
+        }
+
+        // =========================================================
+        //  GUARDAR SERVICIO
+        // =========================================================
+        async function submitService(e) {
             e.preventDefault();
+
             const f1 = document.getElementById('f1').files[0];
             const f2 = document.getElementById('f2').files[0];
             const f3 = document.getElementById('f3').files[0];
 
-            if(!f1 || !f2 || !f3) {
+            if (!f1 || !f2 || !f3) {
                 alert('Error: Las 3 fotos capturadas con cámara son obligatorias.');
                 return;
+            }
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = 'Procesando fotos...';
+            btn.disabled = true;
+
+            let photoP1 = '', photoP2 = '', photoP3 = '';
+            try {
+                [photoP1, photoP2, photoP3] = await Promise.all([
+                    fileToCompressedDataURL(f1),
+                    fileToCompressedDataURL(f2),
+                    fileToCompressedDataURL(f3)
+                ]);
+            } catch (err) {
+                console.warn('Fallo compresión de fotos:', err);
             }
 
             const duration = serviceStartTime ? Math.round((new Date() - serviceStartTime) / 60000) : 15;
@@ -859,15 +1084,32 @@
                 const a = assets.find(x => x.id === currentAssetId);
                 const newService = {
                     id: sId,
+                    tenant: TENANT,
+                    assetId: currentAssetId,
                     assetName: a ? a.nameQR : 'Generador General',
                     client: a ? a.client : 'Cliente General',
                     fecha: document.getElementById('servFecha').value,
                     tech: document.getElementById('techName').value,
                     horas: document.getElementById('inputHorasActual').value,
                     duration: duration,
+                    photos: { p1: photoP1, p2: photoP2, p3: photoP3 },
                     details: {
                         oilPres: document.getElementById('oilPres').value,
+                        m0_bat: document.getElementById('m0_bat').value,
+                        m0_temp: document.getElementById('m0_temp').value,
+                        m0_vca: document.getElementById('m0_vca').value,
+                        m0_amp: document.getElementById('m0_amp').value,
+                        m0_hz: document.getElementById('m0_hz').value,
+                        m5_bat: document.getElementById('m5_bat').value,
+                        m5_temp: document.getElementById('m5_temp').value,
+                        m5_vca: document.getElementById('m5_vca').value,
+                        m5_amp: document.getElementById('m5_amp').value,
+                        m5_hz: document.getElementById('m5_hz').value,
+                        m10_bat: document.getElementById('m10_bat').value,
                         m10_temp: document.getElementById('m10_temp').value,
+                        m10_vca: document.getElementById('m10_vca').value,
+                        m10_amp: document.getElementById('m10_amp').value,
+                        m10_hz: document.getElementById('m10_hz').value,
                         vRS: document.getElementById('vRS').value,
                         vHz: document.getElementById('vHz').value,
                         oilFilt1: document.getElementById('oilFilt1').value,
@@ -882,30 +1124,40 @@
                     }
                 };
 
-                const saveFinished = () => {
+                // Intento guardar (puede fallar si el storage se llenó por fotos)
+                try {
+                    const services = JSON.parse(localStorage.getItem(servicesKey()) || '[]');
+                    services.push(newService);
+                    localStorage.setItem(servicesKey(), JSON.stringify(services));
+                } catch (err) {
+                    console.warn('localStorage lleno, se guardará solo en Firebase:', err);
+                }
+
+                lastServicesHash = '';
+
+                const finish = () => {
                     generatePDF(newService);
                     alert(`¡Servicio guardado con éxito y PDF exportado!\nTiempo de ejecución: ${duration} minutos.`);
                     document.getElementById('fullServiceForm').reset();
+                    btn.innerText = originalText;
+                    btn.disabled = false;
                     updateKPIs();
                     switchView('view-history', document.querySelectorAll('.nav-item')[4]);
                 };
 
                 if (useFirebase && db) {
-                    db.ref('services/' + sId).set(newService).then(saveFinished).catch(() => {
-                        const services = JSON.parse(localStorage.getItem('genset_services') || '[]');
-                        services.push(newService);
-                        localStorage.setItem('genset_services', JSON.stringify(services));
-                        saveFinished();
-                    });
+                    db.ref(`tenants/${TENANT}/services/${sId}`).set(newService)
+                        .then(finish)
+                        .catch(err => { console.error('Firebase falló:', err); finish(); });
                 } else {
-                    const services = JSON.parse(localStorage.getItem('genset_services') || '[]');
-                    services.push(newService);
-                    localStorage.setItem('genset_services', JSON.stringify(services));
-                    saveFinished();
+                    finish();
                 }
             });
         }
 
+        // =========================================================
+        //  KPIs + HISTORIAL
+        // =========================================================
         function updateKPIs() {
             getAssets(assets => {
                 getServices(services => {
@@ -919,29 +1171,45 @@
         function renderHistory() {
             getServices(services => {
                 const container = document.getElementById('historyList');
+                if (!container) return;
+
+                const hash = JSON.stringify(services.map(s => s.id));
+                if (hash === lastServicesHash) return;
+                lastServicesHash = hash;
+
+                servicesCache = services;
                 container.innerHTML = '';
-                if(services.length === 0) {
+
+                if (services.length === 0) {
                     container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No hay servicios registrados todavía.</p>';
                     return;
                 }
-                services.forEach(s => {
+
+                services.slice().reverse().forEach(s => {
                     const div = document.createElement('div');
-                    div.style.cssText = "background: var(--bg-card); padding: 14px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;";
+                    div.className = 'history-item';
                     div.innerHTML = `
                         <div>
                             <strong>Servicio ${s.id}</strong> — Equipo: ${s.assetName} (${s.client})<br>
                             <span style="color:var(--text-muted);">Fecha: ${s.fecha} | Técnico: ${s.tech} | Horas: ${s.horas} Hs | Duración: ${s.duration} min</span>
                         </div>
-                        <button class="btn-secondary" onclick='generatePDF(${JSON.stringify(s)})'>📄 Descargar PDF</button>
+                        <button class="btn-secondary" data-download-id="${s.id}">📄 Descargar PDF</button>
                     `;
                     container.appendChild(div);
+
+                    const btn = div.querySelector('[data-download-id]');
+                    btn.addEventListener('click', () => downloadServicePDF(s.id));
                 });
             });
         }
 
+        // =========================================================
+        //  INIT
+        // =========================================================
         window.onload = function() {
-            document.getElementById('servFecha').valueAsDate = new Date();
-            loadAssetsList();
+            const fechaInput = document.getElementById('servFecha');
+            if (fechaInput) fechaInput.valueAsDate = new Date();
+            loadAssetsList(true);
             updateKPIs();
         };
     </script>
