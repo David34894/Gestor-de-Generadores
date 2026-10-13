@@ -108,6 +108,16 @@
         .diag-line:last-child { border-bottom:none; }
         .diag-ok { color:var(--success); font-weight:700; }
         .diag-bad { color:var(--danger); font-weight:700; }
+        .status-toast {
+            position:fixed; top:20px; right:20px; z-index:9999;
+            background:var(--bg-card); border:1px solid var(--primary); border-left:4px solid var(--primary);
+            color:#fff; padding:14px 18px; border-radius:8px; font-size:0.85rem;
+            box-shadow:0 10px 30px rgba(0,0,0,0.5); max-width:400px;
+            animation:slideIn 0.3s ease-out;
+        }
+        .status-toast.error { border-color:var(--danger); border-left-color:var(--danger); }
+        .status-toast.warning { border-color:var(--warning); border-left-color:var(--warning); }
+        @keyframes slideIn { from{transform:translateX(100%); opacity:0;} to{transform:translateX(0); opacity:1;} }
         @media (max-width:768px) {
             body { flex-direction:column; }
             .sidebar { width:100%; height:auto; position:relative; padding:12px 16px; border-right:none; border-bottom:1px solid var(--border); overflow:visible; }
@@ -171,16 +181,20 @@
             </div>
             <div class="scada-panel-grid">
                 <div class="scada-card">
-                    <div class="scada-card-title">Telemetría Promedio Flota <span>RUNNING</span></div>
-                    <div class="gauge-container">
-                        <div><div class="gauge-circle"><span class="gauge-val">1500</span><span class="gauge-unit">RPM</span></div><div style="font-size:0.75rem; margin-top:6px; color:var(--text-muted);">Velocidad</div></div>
-                        <div><div class="gauge-circle" style="border-top-color:var(--accent-orange);"><span class="gauge-val">5.8</span><span class="gauge-unit">BAR</span></div><div style="font-size:0.75rem; margin-top:6px; color:var(--text-muted);">Presión Aceite</div></div>
+                    <div class="scada-card-title">Estado del Sistema <span>DIAGNOSTICO</span></div>
+                    <div id="systemDiagBox" class="diag-box">
+                        <div class="diag-line"><span>jsPDF:</span> <span id="diagJsPDF">Verificando...</span></div>
+                        <div class="diag-line"><span>QRCode:</span> <span id="diagQRCode">Verificando...</span></div>
+                        <div class="diag-line"><span>Firebase SDK:</span> <span id="diagFB">Verificando...</span></div>
+                        <div class="diag-line"><span>Empresa activa:</span> <span id="diagTenant">-</span></div>
                     </div>
+                    <button class="btn-secondary" style="width:100%; margin-bottom:8px;" onclick="runDiagnostics()">🔍 Ejecutar Diagnóstico</button>
+                    <button class="btn-success" style="width:100%; margin-bottom:8px;" onclick="testGeneratePDF()">📄 Probar Generar PDF de Prueba</button>
+                    <button class="btn-secondary" style="width:100%;" onclick="testFirebaseConnection()">🔄 Probar Firebase</button>
                 </div>
                 <div class="scada-card">
-                    <div class="scada-card-title">Estado de Sincronización <span>Cloud</span></div>
+                    <div class="scada-card-title">Sincronización <span>Cloud</span></div>
                     <div id="firebaseDiagBox" class="diag-box"><div class="diag-line"><span>Cargando...</span></div></div>
-                    <button class="btn-secondary" style="width:100%; margin-bottom:8px;" onclick="testFirebaseConnection()">🔄 Probar Firebase</button>
                     <button class="btn-success" style="width:100%;" onclick="syncAllLocalToFirebase(true)">☁️ Subir datos locales a la nube</button>
                 </div>
             </div>
@@ -255,12 +269,12 @@
                 <div class="step-tab" onclick="switchStep('step-6', this)">6. Fotos & Cierre</div>
             </div>
 
-            <form id="fullServiceForm" onsubmit="submitService(event)">
+            <form id="fullServiceForm" onsubmit="submitService(event)" novalidate>
                 <div id="step-1" class="step-content">
                     <fieldset>
                         <legend>1. Encabezado del Servicio</legend>
                         <div class="grid-4">
-                            <div class="form-group"><label>Fecha</label><input type="date" id="servFecha" required></div>
+                            <div class="form-group"><label>Fecha</label><input type="date" id="servFecha"></div>
                             <div class="form-group"><label>Ensayos / ID</label><input type="text" id="servEnsayos" value="GG-EE"></div>
                             <div class="form-group"><label>Horas Último Service</label><input type="text" id="servUltimoHs"></div>
                             <div class="form-group"><label>Fecha Último Service</label><input type="date" id="servUltimaFecha"></div>
@@ -394,7 +408,7 @@
                             <div class="form-group"><label>Turbo Filtro</label><input type="text" id="turboFilt" placeholder="OK"></div>
                         </div>
                         <div class="grid-2">
-                            <div class="form-group"><label>Horas de Marcha Actual</label><input type="text" id="inputHorasActual" placeholder="Ej. 1122,2" required></div>
+                            <div class="form-group"><label>Horas de Marcha Actual</label><input type="text" id="inputHorasActual" placeholder="Ej. 1122,2"></div>
                             <div class="form-group"><label>Próximo Service</label><input type="text" id="nextServiceHs" placeholder="Ej. 1372,2 Hs"></div>
                         </div>
                     </fieldset>
@@ -405,7 +419,7 @@
                         <legend>7. Observaciones y Fotos (OPCIONALES)</legend>
                         <div class="form-group"><label>Observaciones Generales</label><textarea rows="3" id="obsText" placeholder="Novedades del servicio..."></textarea></div>
                         <div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); padding:10px; border-radius:6px; margin-bottom:12px; font-size:0.8rem; color:#fbbf24;">
-                            ⚠️ Las fotos son <b>opcionales</b>. Si no las sacás, el PDF igual se genera.
+                            ⚠️ Las fotos son <b>opcionales</b>. El PDF se genera igual.
                         </div>
                         <div class="grid-3">
                             <div class="form-group"><label>Foto 1: Generador</label><input type="file" accept="image/*" capture="environment" id="f1"></div>
@@ -413,7 +427,7 @@
                             <div class="form-group"><label>Foto 3: Interconexión</label><input type="file" accept="image/*" capture="environment" id="f3"></div>
                         </div>
                         <div class="form-group" style="margin-top:15px;">
-                            <label>Técnico Responsable</label><input type="text" id="techName" placeholder="Nombre y Matrícula" required>
+                            <label>Técnico Responsable</label><input type="text" id="techName" placeholder="Nombre y Matrícula">
                         </div>
                     </fieldset>
                     <button type="submit" class="btn-act" style="width:100%; padding:16px;">Finalizar y Descargar PDF</button>
@@ -448,6 +462,23 @@
     </main>
 
     <script>
+        // =========================================================
+        //  TOAST VISIBLE (en vez de solo alert)
+        // =========================================================
+        function toast(msg, type) {
+            const t = document.createElement('div');
+            t.className = 'status-toast' + (type === 'error' ? ' error' : type === 'warning' ? ' warning' : '');
+            t.innerHTML = msg;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.5s'; }, 4500);
+            setTimeout(() => t.remove(), 5000);
+        }
+
+        window.addEventListener('error', (e) => {
+            console.error('Error global:', e.error || e.message);
+            toast('❌ Error JS: ' + (e.message || 'desconocido'), 'error');
+        });
+
         const ADMIN_TENANT_PIN = "8898";
         let TENANT = localStorage.getItem('pc_tenant_id');
         if (!TENANT) { TENANT = 'default'; localStorage.setItem('pc_tenant_id', TENANT); }
@@ -494,7 +525,47 @@
         let servicesCache = [];
 
         // =========================================================
-        //  FIREBASE HELPERS
+        //  DIAGNÓSTICO VISIBLE
+        // =========================================================
+        function runDiagnostics() {
+            const el = id => document.getElementById(id);
+            el('diagJsPDF').innerHTML = (window.jspdf && window.jspdf.jsPDF)
+                ? '<span class="diag-ok">✔ OK</span>'
+                : '<span class="diag-bad">✘ NO cargado</span>';
+            el('diagQRCode').innerHTML = (typeof QRCode !== 'undefined')
+                ? '<span class="diag-ok">✔ OK</span>'
+                : '<span class="diag-bad">✘ NO cargado</span>';
+            el('diagFB').innerHTML = (typeof firebase !== 'undefined' && db)
+                ? '<span class="diag-ok">✔ OK</span>'
+                : '<span class="diag-bad">✘ NO cargado</span>';
+            el('diagTenant').innerHTML = '<span class="diag-ok">' + TENANT + '</span>';
+        }
+
+        // Prueba: generar un PDF vacío de prueba
+        function testGeneratePDF() {
+            try {
+                if (!window.jspdf || !window.jspdf.jsPDF) {
+                    toast('❌ jsPDF no está cargado. Recargá con Ctrl+F5.', 'error');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.setFontSize(20);
+                doc.text('PDF DE PRUEBA — POWERCORE', 20, 30);
+                doc.setFontSize(12);
+                doc.text('Si ves este archivo, la librería funciona bien.', 20, 50);
+                doc.text('Fecha: ' + new Date().toLocaleString(), 20, 60);
+                doc.text('Empresa: ' + TENANT, 20, 70);
+                doc.save('PRUEBA_POWERCORE.pdf');
+                toast('✅ PDF de prueba descargado.');
+            } catch (err) {
+                console.error(err);
+                toast('❌ Error: ' + err.message, 'error');
+            }
+        }
+
+        // =========================================================
+        //  FIREBASE
         // =========================================================
         function testFirebaseConnection() {
             const statusEl = document.getElementById('syncStatus');
@@ -583,7 +654,7 @@
             }
             document.getElementById('navMenu').classList.remove('open');
             if (viewId === 'view-pin') initQrScanner(); else stopQrScanner();
-            if (viewId === 'view-dashboard') updateKPIs();
+            if (viewId === 'view-dashboard') { updateKPIs(); runDiagnostics(); }
             if (viewId === 'view-history') renderHistory();
             if (viewId === 'view-assets') loadAssetsList(true);
             if (viewId === 'view-tenants') renderTenantManager();
@@ -615,7 +686,7 @@
         }
 
         // =========================================================
-        //  CAPA DE DATOS
+        //  DATOS
         // =========================================================
         function getAssets(callback, tenantOverride) {
             const t = tenantOverride || TENANT;
@@ -700,9 +771,6 @@
             loadAssetsList(true); updateKPIs();
         }
 
-        // =========================================================
-        //  RENDER ACTIVOS
-        // =========================================================
         function loadAssetsList(force = false) {
             getAssets(assets => {
                 const container = document.getElementById('assetsList');
@@ -799,9 +867,6 @@
             setTimeout(() => { const p = document.getElementById('pinInput'); if (p) p.focus(); }, 400);
         }
 
-        // =========================================================
-        //  QR SCANNER
-        // =========================================================
         function initQrScanner() {
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
             if (html5QrCode.isScanning) return;
@@ -836,7 +901,7 @@
             if (!currentAssetId) { alert('Escaneá o seleccioná un generador.'); return; }
             if (document.getElementById('pinInput').value === GLOBAL_PIN) {
                 serviceStartTime = new Date();
-                alert('PIN Correcto. Iniciando protocolo.');
+                toast('✅ PIN correcto. Iniciando protocolo.');
                 switchView('view-protocol', document.querySelectorAll('.nav-item')[3]);
             } else alert('PIN Incorrecto.');
         }
@@ -873,12 +938,12 @@
         }
 
         // =========================================================
-        //  PDF COMPLETO — TODOS LOS CAMPOS POR SECCIÓN
+        //  PDF
         // =========================================================
         function generatePDF(s) {
             try {
                 if (!window.jspdf || !window.jspdf.jsPDF) {
-                    alert('❌ La librería jsPDF no cargó.\nRecargá con Ctrl+F5.');
+                    toast('❌ jsPDF no cargó. Recargá con Ctrl+F5.', 'error');
                     return false;
                 }
                 const { jsPDF } = window.jspdf;
@@ -886,10 +951,11 @@
                 const pageW = doc.internal.pageSize.getWidth();
                 const pageH = doc.internal.pageSize.getHeight();
                 const d = s.details || {};
-                const M = 14; // margen
+                const M = 14;
 
                 let y = 0;
-                function checkPage(need = 20) {
+                function checkPage(need) {
+                    need = need || 20;
                     if (y + need > pageH - 15) { doc.addPage(); y = 20; }
                 }
                 function section(title) {
@@ -929,7 +995,6 @@
                     y += 5;
                 }
 
-                // ENCABEZADO
                 doc.setFillColor(11, 15, 23);
                 doc.rect(0, 0, pageW, 25, "F");
                 doc.setTextColor(132, 204, 22);
@@ -942,7 +1007,6 @@
 
                 y = 35;
 
-                // DATOS GENERALES
                 section("DATOS GENERALES");
                 twoLines("Servicio ID", s.id, "Fecha", s.fecha);
                 twoLines("Cliente", s.client, "Equipo", s.assetName);
@@ -951,7 +1015,6 @@
                 twoLines("Ensayos/ID", d.servEnsayos, "Horas Ultimo Serv.", d.servUltimoHs);
                 twoLines("Fecha Ultimo Serv.", d.servUltimaFecha, "Proximo Serv.", d.nextServiceHs);
 
-                // TIPO DE SERVICIO
                 const tipos = [];
                 if (d.typePrev) tipos.push('Preventivo');
                 if (d.typeMensual) tipos.push('Mensual');
@@ -959,7 +1022,6 @@
                 if (d.typeCorrectivo) tipos.push('Correctivo');
                 line("Tipo de Servicio", tipos.join(' / ') || 'No especificado');
 
-                // TTA
                 section("INTERRUPTOR GENERAL Y TTA");
                 twoLines("Interruptor Marca/Mod.", d.intMarca, "Potencia (A)", d.intPot);
                 line("Estado / Torque Potencia", d.intTorque);
@@ -969,14 +1031,12 @@
                 twoLines("Prueba Falla Red", d.ttaPruebaRed, "Prueba Retardo Red", d.ttaRetardo);
                 line("Torque Comando", d.ttaComando);
 
-                // TENSIÓN
                 section("TENSION Y FRECUENCIA (EN VACIO)");
                 twoLines("Tension R-S (V)", d.vRS, "Tension S-T (V)", d.vST);
                 twoLines("Tension R-T (V)", d.vRT, "Tension N-R (V)", d.vNR);
                 twoLines("Tension N-S (V)", d.vNS, "Tension N-T (V)", d.vNT);
                 line("Frecuencia (Hz)", d.vHz);
 
-                // INSUMOS
                 section("INSUMOS, ACEITE, FILTROS Y BATERIAS");
                 twoLines("Presion Aceite", d.oilPres, "Marca/Tipo Aceite", d.oilType);
                 twoLines("Litros / Nivel Aceite", d.oilLevel, "Consumo Estimado", d.oilCons);
@@ -986,7 +1046,6 @@
                 twoLines("Nivel Tanque Combustible", d.fuelTank, "Estado Bornes / Cant.", d.batState);
                 twoLines("Tension Bateria OFF/ON", d.batVolt, "Cargador Bat. OFF/ON", d.chargVolt);
 
-                // MOTOR EN MARCHA
                 section("CONTROLES CON MOTOR EN MARCHA");
                 checkPage(40);
                 const rows = [
@@ -1011,7 +1070,6 @@
                 y += 3;
                 line("Ruidos Extranos", d.noises);
 
-                // FUGAS E INSPECCIÓN
                 section("FUGAS, LIMPIEZA E INSPECCION VISUAL");
                 twoLines("Fugas Gases", d.leakGas, "Fugas Lubricante", d.leakOil);
                 twoLines("Fugas Combustible", d.leakFuel, "Mangueras Refrigerante", d.hosesCool);
@@ -1019,7 +1077,6 @@
                 twoLines("Limpieza Exterior", d.cleanExt, "Limpieza Sala Maquinas", d.cleanRoom);
                 line("Turbo Filtro", d.turboFilt);
 
-                // OBSERVACIONES
                 section("OBSERVACIONES");
                 doc.setFont("helvetica", "normal");
                 const obs = doc.splitTextToSize(d.obsText || 'Sin observaciones.', pageW - 2 * M - 4);
@@ -1027,7 +1084,6 @@
                 doc.text(obs, M + 2, y);
                 y += obs.length * 5 + 5;
 
-                // FOTOS
                 if (s.photos && (s.photos.p1 || s.photos.p2 || s.photos.p3)) {
                     section("REGISTRO FOTOGRAFICO");
                     const imgW = (pageW - 2 * M - 6) / 3;
@@ -1045,7 +1101,6 @@
                     y += imgH + 12;
                 }
 
-                // FIRMAS
                 checkPage(35);
                 doc.setDrawColor(120, 120, 120);
                 doc.line(M, y + 15, 90, y + 15);
@@ -1061,57 +1116,81 @@
                 return true;
             } catch (err) {
                 console.error('Error generando PDF:', err);
-                alert('❌ Error al generar el PDF:\n' + err.message);
+                toast('❌ Error PDF: ' + err.message, 'error');
                 return false;
             }
         }
 
         function downloadServicePDF(id) {
             const s = servicesCache.find(x => x.id === id);
-            if (!s) { alert('Servicio no encontrado.'); return; }
+            if (!s) { toast('Servicio no encontrado.', 'error'); return; }
             generatePDF(s);
         }
 
         // =========================================================
-        //  GUARDAR SERVICIO — TODOS LOS CAMPOS
+        //  GUARDAR SERVICIO — CON DIAGNÓSTICO PASO A PASO
         // =========================================================
         async function submitService(e) {
             e.preventDefault();
+            console.log('=== INICIO submitService ===');
+
             const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerText;
-            btn.innerText = 'Guardando...'; btn.disabled = true;
+            btn.innerText = 'Procesando...'; btn.disabled = true;
 
-            const f1 = document.getElementById('f1').files[0];
-            const f2 = document.getElementById('f2').files[0];
-            const f3 = document.getElementById('f3').files[0];
-
-            let photoP1 = '', photoP2 = '', photoP3 = '';
             try {
-                const tasks = [
-                    f1 ? fileToCompressedDataURL(f1) : Promise.resolve(''),
-                    f2 ? fileToCompressedDataURL(f2) : Promise.resolve(''),
-                    f3 ? fileToCompressedDataURL(f3) : Promise.resolve('')
-                ];
-                [photoP1, photoP2, photoP3] = await Promise.all(tasks);
-            } catch (err) { console.warn('Fotos:', err); }
+                // Validación manual (sin required HTML)
+                const fecha = val('servFecha');
+                const tecnico = val('techName');
 
-            const duration = serviceStartTime ? Math.round((new Date() - serviceStartTime) / 60000) : 15;
-            const sId = 'SRV-' + Date.now().toString().slice(-5);
+                if (!fecha) {
+                    toast('⚠️ Falta la Fecha del servicio (paso 1).', 'warning');
+                    switchStep('step-1', document.querySelectorAll('.step-tab')[0]);
+                    btn.innerText = originalText; btn.disabled = false;
+                    return;
+                }
+                if (!tecnico) {
+                    toast('⚠️ Falta el nombre del Técnico Responsable.', 'warning');
+                    switchStep('step-6', document.querySelectorAll('.step-tab')[5]);
+                    btn.innerText = originalText; btn.disabled = false;
+                    return;
+                }
 
-            getAssets(assets => {
+                console.log('Validación OK. Fecha:', fecha, 'Técnico:', tecnico);
+
+                // Fotos
+                const f1 = document.getElementById('f1').files[0];
+                const f2 = document.getElementById('f2').files[0];
+                const f3 = document.getElementById('f3').files[0];
+                let photoP1 = '', photoP2 = '', photoP3 = '';
+                try {
+                    const tasks = [
+                        f1 ? fileToCompressedDataURL(f1) : Promise.resolve(''),
+                        f2 ? fileToCompressedDataURL(f2) : Promise.resolve(''),
+                        f3 ? fileToCompressedDataURL(f3) : Promise.resolve('')
+                    ];
+                    [photoP1, photoP2, photoP3] = await Promise.all(tasks);
+                } catch (err) { console.warn('Fotos fallaron:', err); }
+
+                const duration = serviceStartTime ? Math.round((new Date() - serviceStartTime) / 60000) : 15;
+                const sId = 'SRV-' + Date.now().toString().slice(-5);
+
+                // Obtener activo actual
+                const assets = JSON.parse(localStorage.getItem(assetsKey()) || '[]');
                 const a = assets.find(x => x.id === currentAssetId);
+
                 const newService = {
-                    id: sId, tenant: TENANT, assetId: currentAssetId || 'sin_asignar',
+                    id: sId, tenant: TENANT,
+                    assetId: currentAssetId || (a ? a.id : 'sin_asignar'),
                     assetName: a ? a.nameQR : 'Generador General',
                     client: a ? a.client : 'Cliente General',
                     sitio: a ? a.site : '',
-                    fecha: val('servFecha'),
-                    tech: val('techName'),
+                    fecha: fecha,
+                    tech: tecnico,
                     horas: val('inputHorasActual'),
                     duration: duration,
                     photos: { p1: photoP1, p2: photoP2, p3: photoP3 },
                     details: {
-                        // Encabezado
                         servEnsayos: val('servEnsayos'),
                         servUltimoHs: val('servUltimoHs'),
                         servUltimaFecha: val('servUltimaFecha'),
@@ -1119,65 +1198,89 @@
                         typeMensual: val('typeMensual'),
                         typeAnual: val('typeAnual'),
                         typeCorrectivo: val('typeCorrectivo'),
-                        // TTA
                         intMarca: val('intMarca'), intPot: val('intPot'), intTorque: val('intTorque'),
                         ttaMarca: val('ttaMarca'), ttaPolos: val('ttaPolos'), ttaControl: val('ttaControl'),
                         ttaTorqueRST: val('ttaTorqueRST'), ttaTorqueR1: val('ttaTorqueR1'), ttaTorqueUVW: val('ttaTorqueUVW'),
                         ttaPruebaRed: val('ttaPruebaRed'), ttaRetardo: val('ttaRetardo'), ttaComando: val('ttaComando'),
-                        // Tensión
                         vRS: val('vRS'), vST: val('vST'), vRT: val('vRT'),
                         vNR: val('vNR'), vNS: val('vNS'), vNT: val('vNT'), vHz: val('vHz'),
-                        // Insumos
                         oilPres: val('oilPres'), oilType: val('oilType'), oilLevel: val('oilLevel'),
                         oilFilt1: val('oilFilt1'), oilFilt2: val('oilFilt2'), oilCons: val('oilCons'),
                         airFilt: val('airFilt'), fuelFilt: val('fuelFilt'), fuelTank: val('fuelTank'),
                         batVolt: val('batVolt'), chargVolt: val('chargVolt'), batState: val('batState'),
-                        // Motor en marcha
                         m0_bat: val('m0_bat'), m0_temp: val('m0_temp'), m0_vca: val('m0_vca'), m0_amp: val('m0_amp'), m0_hz: val('m0_hz'),
                         m5_bat: val('m5_bat'), m5_temp: val('m5_temp'), m5_vca: val('m5_vca'), m5_amp: val('m5_amp'), m5_hz: val('m5_hz'),
                         m10_bat: val('m10_bat'), m10_temp: val('m10_temp'), m10_vca: val('m10_vca'), m10_amp: val('m10_amp'), m10_hz: val('m10_hz'),
                         noises: val('noises'),
-                        // Fugas
                         leakGas: val('leakGas'), leakOil: val('leakOil'), leakFuel: val('leakFuel'),
                         hosesCool: val('hosesCool'), hosesFuel: val('hosesFuel'), beltsState: val('beltsState'),
                         cleanExt: val('cleanExt'), cleanRoom: val('cleanRoom'), turboFilt: val('turboFilt'),
                         nextServiceHs: val('nextServiceHs'),
-                        // Observaciones
                         obsText: val('obsText')
                     }
                 };
 
+                console.log('Servicio construido:', sId, newService.assetName);
+
+                // Guardar local
+                let localSaveOk = false;
                 try {
                     const services = JSON.parse(localStorage.getItem(servicesKey()) || '[]');
                     services.push(newService);
                     localStorage.setItem(servicesKey(), JSON.stringify(services));
-                } catch (err) { console.warn('localStorage lleno:', err); }
+                    localSaveOk = true;
+                    console.log('✅ Guardado local OK. Total servicios:', services.length);
+                } catch (err) {
+                    console.warn('localStorage lleno:', err);
+                    toast('⚠️ localStorage lleno, guardando solo en nube.', 'warning');
+                }
 
                 lastServicesHash = '';
 
-                const finish = (synced) => {
-                    const pdfOk = generatePDF(newService);
-                    if (pdfOk) {
-                        alert(`✅ Servicio guardado y PDF descargado.\n📄 ${sId}\n🏢 ${TENANT}\n🔧 ${newService.assetName}\n${synced ? '☁️ Sincronizado.' : '⚠️ Solo LOCAL.'}`);
-                    } else {
-                        alert(`⚠️ Servicio guardado, pero el PDF falló.\nProbá recargar con Ctrl+F5.`);
-                    }
-                    document.getElementById('fullServiceForm').reset();
-                    btn.innerText = originalText; btn.disabled = false;
-                    updateKPIs();
-                    switchView('view-history', document.querySelectorAll('.nav-item')[4]);
-                };
+                // Generar PDF (independiente del guardado en Firebase)
+                console.log('Generando PDF...');
+                const pdfOk = generatePDF(newService);
+                console.log('PDF resultado:', pdfOk);
 
+                // Guardar en Firebase (no bloquea el PDF)
+                let synced = false;
                 if (useFirebase && db) {
-                    db.ref(`tenants/${TENANT}/services/${sId}`).set(newService)
-                        .then(() => finish(true))
-                        .catch(err => { console.error('FB:', err); finish(false); });
-                } else finish(false);
-            });
+                    try {
+                        await db.ref(`tenants/${TENANT}/services/${sId}`).set(newService);
+                        synced = true;
+                        console.log('✅ Guardado en Firebase');
+                    } catch (err) {
+                        console.warn('Firebase falló:', err);
+                    }
+                }
+
+                // Mostrar resultado
+                if (pdfOk) {
+                    toast(`✅ Servicio guardado y PDF descargado.<br><b>${sId}</b><br>🔧 ${newService.assetName}<br>${localSaveOk ? '💾 Local OK' : ''} ${synced ? '☁️ Nube OK' : ''}`);
+                } else {
+                    toast(`⚠️ Servicio guardado pero PDF falló.<br>Probá Ctrl+F5 y volvé a intentar.`, 'warning');
+                }
+
+                // Reset y navegación
+                document.getElementById('fullServiceForm').reset();
+                const fechaInput = document.getElementById('servFecha');
+                if (fechaInput) fechaInput.valueAsDate = new Date();
+
+                updateKPIs();
+                lastServicesHash = '';
+                switchView('view-history', document.querySelectorAll('.nav-item')[4]);
+
+            } catch (err) {
+                console.error('ERROR en submitService:', err);
+                toast('❌ Error al guardar: ' + err.message, 'error');
+            } finally {
+                const btn2 = e.target.querySelector('button[type="submit"]');
+                if (btn2) { btn2.innerText = originalText; btn2.disabled = false; }
+            }
         }
 
         // =========================================================
-        //  KPIs + HISTORIAL AGRUPADO
+        //  KPIs + HISTORIAL
         // =========================================================
         function updateKPIs() {
             getAssets(assets => {
@@ -1193,9 +1296,7 @@
             getServices(services => {
                 const container = document.getElementById('historyList');
                 if (!container) return;
-                const hash = JSON.stringify(services.map(s => s.id));
-                if (hash === lastServicesHash) return;
-                lastServicesHash = hash;
+
                 servicesCache = services;
                 container.innerHTML = '';
 
@@ -1232,7 +1333,7 @@
 
                     const body = document.createElement('div');
                     body.className = 'gen-group-body';
-                    body.style.display = 'none';
+                    body.style.display = 'block';
 
                     g.items.forEach(s => {
                         const item = document.createElement('div');
@@ -1265,7 +1366,7 @@
         }
 
         // =========================================================
-        //  GESTIÓN DE EMPRESAS
+        //  EMPRESAS
         // =========================================================
         function getAllLocalTenants() {
             const tenants = new Set();
@@ -1361,12 +1462,13 @@
             if (fechaInput) fechaInput.valueAsDate = new Date();
             loadAssetsList(true);
             updateKPIs();
+            runDiagnostics();
 
             testFirebaseConnection().then(ok => {
                 if (ok) {
                     syncAllLocalToFirebase(false).then(r => {
                         if (r.uploaded > 0) {
-                            console.log(`🔄 Auto-sync: ${r.uploaded} subidos a Firebase.`);
+                            console.log(`🔄 Auto-sync: ${r.uploaded} subidos.`);
                             loadAssetsList(true);
                             updateKPIs();
                         }
